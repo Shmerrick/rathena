@@ -2171,7 +2171,7 @@ bool status_check_skilluse(const block_list* src, const block_list* target, uint
 			(src->type != BL_PC || ((TBL_PC*)src)->skillitem != skill_id)
 		) {	// Skills blocked through status changes...
 			if (!flag && ( // Blocked only from using the skill (stuff like autospell may still go through
-				( sc->cant.cast && skill_id != RK_REFRESH && skill_id != SU_GROOMING && skill_id != SR_GENTLETOUCH_CURE ) ||
+				( sc->cant.cast && skill_id != RK_REFRESH && skill_id != SU_GROOMING && skill_id != SR_GENTLETOUCH_CURE && skill_id != MO_STEELBODY ) || // [RESTART] MO_STEELBODY can refresh itself while SteelBody is active
 #ifndef RENEWAL
 				(sc->getSCE(SC_BASILICA) && (sc->getSCE(SC_BASILICA)->val4 != src->id || skill_id != HP_BASILICA)) || // Only Basilica caster that can cast, and only Basilica to cancel it
 #endif
@@ -2475,6 +2475,7 @@ uint16 status_base_atk(const block_list *bl, const struct status_data *status, i
 		case BL_PC:
 #ifdef RENEWAL
 			str = (dstr * 10 + dex * 10 / 5 + status->luk * 10 / 3 + level * 10 / 4) / 10 + 5 * status->pow;
+			str += (dstr / 10) * (dstr / 10); // [RESTART] Pre-RE stat increment bonus: +floor(STR/10)^2 ATK, additive on renewal formula
 #else
 			dstr = str / 10;
 			str += dstr*dstr;
@@ -2568,7 +2569,9 @@ uint16 status_base_matk_min( const block_list* bl, const status_data* status, in
 			return status_get_homint(bl) + level + (status_get_homint(bl) + status_get_homdex(bl)) / 5;
 		case BL_PC:
 		default:
-			return status->int_ + (status->int_ / 2) + (status->dex / 5) + (status->luk / 3) + (level / 4) + 5 * status->spl;
+			// [RESTART] Pre-RE stat increment bonus: +floor(INT/7)^2 MATK min, additive on renewal formula
+			return status->int_ + (status->int_ / 2) + (status->dex / 5) + (status->luk / 3) + (level / 4) + 5 * status->spl
+			       + (status->int_ / 7) * (status->int_ / 7);
 	}
 }
 
@@ -2587,7 +2590,9 @@ uint16 status_base_matk_max( const block_list* bl, const status_data* status, in
 			return status_get_homint(bl) + level + (status_get_homluk(bl) + status_get_homint(bl) + status_get_homdex(bl)) / 3;
 		case BL_PC:
 		default:
-			return status->int_ + (status->int_ / 2) + (status->dex / 5) + (status->luk / 3) + (level / 4) + 5 * status->spl;
+			// [RESTART] Pre-RE stat increment bonus: +floor(INT/5)^2 MATK max, additive on renewal formula
+			return status->int_ + (status->int_ / 2) + (status->dex / 5) + (status->luk / 3) + (level / 4) + 5 * status->spl
+			       + (status->int_ / 5) * (status->int_ / 5);
 	}
 }
 #endif
@@ -8220,6 +8225,14 @@ static uint16 status_calc_speed(block_list *bl, status_change *sc, int32 speed)
 	if( sc->getSCE(SC_WALKSPEED) && sc->getSCE(SC_WALKSPEED)->val1 > 0 ) // ChangeSpeed
 		speed = speed * 100 / sc->getSCE(SC_WALKSPEED)->val1;
 
+	// [RESTART] Boss protocol mobs that can move: always very fast (100ms/cell)
+	// Immovable bosses (no MD_CANMOVE) are unaffected — they cannot walk regardless of speed
+	if (bl->type == BL_MOB) {
+		mob_data *md = BL_CAST(BL_MOB, bl);
+		if (md && md->status.class_ == CLASS_BOSS && status_has_mode(&md->status, MD_CANMOVE))
+			speed = 100;
+	}
+
 	return (uint16)cap_value(speed, MIN_WALK_SPEED, MAX_WALK_SPEED);
 }
 
@@ -9657,6 +9670,9 @@ t_tick status_get_sc_def(const block_list* src, const block_list* bl, sc_type ty
 	uint16 levelAdv = (static_cast<uint16>(pow(max(0, status_get_lv(src) - status_get_lv(bl)), 2)) / 5) * 100;
 #endif
 
+	// [RESTART] Skip all stat-based SC resistance calculations
+	goto skip_stat_defense;
+
 	switch (type) {
 		case SC_POISON:
 		case SC_DPOISON:
@@ -9860,6 +9876,8 @@ t_tick status_get_sc_def(const block_list* src, const block_list* bl, sc_type ty
 				return 0;
 			return tick ? tick : 1;
 	}
+
+	skip_stat_defense: ; // [RESTART] sc_def/sc_def2/tick_def/tick_def2 remain 0
 
 	if (sd) {
 		if (battle_config.pc_sc_def_rate != 100) {
@@ -10188,14 +10206,6 @@ bool status_change_start(block_list* src, block_list* bl, sc_type type, int32 ra
 
 	status_data* status = status_get_status_data(*bl);
 
-	// Check for Boss resistances
-	if(status->mode&MD_STATUSIMMUNE && !(flag&SCSTART_NOAVOID) && scdb->flag[SCF_BOSSRESIST])
-		return false;
-
-	// Check for MVP resistance
-	if(status->mode&MD_MVP && !(flag&SCSTART_NOAVOID) && scdb->flag[SCF_MVPRESIST])
-		return false;
-
 	// End the SCs from the list and immediately return
 	// If anything in this list is removed, the rest is ignored.
 	if (!scdb->endreturn.empty()) {
@@ -10228,6 +10238,13 @@ bool status_change_start(block_list* src, block_list* bl, sc_type type, int32 ra
 		duration = status_get_sc_def(src, bl, type, rate, duration, flag);
 		if( !duration )
 			return false;
+		// [RESTART] Clamp duration: boss/MVP → 1ms–1s; normal targets → 5s–10s
+		if ((status->mode&MD_STATUSIMMUNE && scdb->flag[SCF_BOSSRESIST]) ||
+		    (status->mode&MD_MVP && scdb->flag[SCF_MVPRESIST])) {
+			duration = cap_value(duration, (t_tick)1, (t_tick)1000);
+		} else {
+			duration = cap_value(duration, (t_tick)5000, (t_tick)10000);
+		}
 	}
 
 	int32 tick = (int32)duration;
@@ -11124,7 +11141,11 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 			break;
 #endif
 		case SC_EXPLOSIONSPIRITS:
-			val2 = 75 + 25*val1; // Cri bonus
+			val2 = 200; // [RESTART] fixed at old lv5 value (was 75+25*val1: lv1=100 … lv5=200)
+			break;
+
+		case SC_RESTART_BOSS_REFLECT:
+			// [RESTART] Boss protocol reflect shield — no init vals needed, reflect checked in battle/skill code
 			break;
 
 		case SC_ASPDPOTION0:

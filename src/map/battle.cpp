@@ -5499,6 +5499,7 @@ static struct Damage initialize_weapon_data(const block_list* src, const block_l
 			case MO_CHAINCOMBO:
 				if (sd && sd->status.weapon == W_KNUCKLE)
 					wd.div_ = -6;
+				wd.type = DMG_MULTI_HIT; // [RESTART] multi-hit type for critical display
 				break;
 #endif
 			case MH_SONIC_CRAW:
@@ -5524,6 +5525,7 @@ static struct Damage initialize_weapon_data(const block_list* src, const block_l
 
 			case TF_DOUBLE: //For NPC used skill.
 			case GS_CHAINACTION:
+			case MO_TRIPLEATTACK: // [RESTART] multi-hit type for critical display
 				wd.type = DMG_MULTI_HIT;
 				break;
 
@@ -6797,8 +6799,7 @@ struct Damage battle_calc_misc_attack(block_list *src,block_list *target,uint16 
 				md.damage = skill_lv * 20 + skill * 6 + ((sstatus->agi / 2) *2) + ((sstatus->dex / 10) *2);
 #else
 				md.damage = (sstatus->dex / 10 + sstatus->int_ / 2 + skill * 3 + 40) * 2;
-				if(mflag > 1) //Autocasted Blitz
-					nk.set(NK_SPLASHSPLIT);
+				// [RESTART] No NK_SPLASHSPLIT: each target takes full damage regardless of count
 #endif
 				if (skill_id == SN_FALCONASSAULT) {
 					//Div fix of Blitzbeat
@@ -7234,6 +7235,13 @@ int64 battle_calc_return_damage(block_list* tbl, block_list *src, int64 *dmg, in
 
 	map_session_data *tsd = BL_CAST(BL_PC, tbl);
 	int64 rdamage = 0, damage = *dmg;
+
+	// [RESTART] Boss protocol reflect shield: redirect 100% of physical/misc damage to attacker
+	// Both physical and misc BF_WEAPON/BF_MISC are covered here; magic handled in skill_magic_reflect
+	if (tsc && tsc->getSCE(SC_RESTART_BOSS_REFLECT)) {
+		*dmg = 0; // Boss takes no damage
+		return damage; // Full damage dealt back to attacker, bypass all other reflect processing
+	}
 
 	if (flag & BF_SHORT) {//Bounces back part of the damage.
 		if ( (skill_get_inf2(skill_id, INF2_ISTRAP) || !status_reflect) && tsd && tsd->bonus.short_weapon_damage_return ) {
@@ -7678,11 +7686,13 @@ enum damage_lv battle_weapon_attack(block_list* src, block_list* target, t_tick 
 		}
 	}
 
-	if(sd && (skillv = pc_checkskill(sd,MO_TRIPLEATTACK)) > 0) {
+	// [RESTART] Triple Attack only procs with bare fists or knuckle weapons (applies to plagiarism copies too)
+	if(sd && (skillv = pc_checkskill(sd,MO_TRIPLEATTACK)) > 0 &&
+	   (sd->status.weapon == W_FIST || sd->status.weapon == W_KNUCKLE)) {
 #ifdef RENEWAL
-		int32 triple_rate = 30; //Base Rate
+		int32 triple_rate = 7 * skillv; // [RESTART] mirrors TF_DOUBLE: lv1=7% ... lv10=70% (was flat 30%)
 #else
-		int32 triple_rate = 30 - skillv; //Base Rate
+		int32 triple_rate = 5 * skillv; // [RESTART] pre-RE mirror: lv1=5% ... lv10=50% (was 30-skillv)
 #endif
 
 		if (sc && sc->getSCE(SC_SKILLRATE_UP) && sc->getSCE(SC_SKILLRATE_UP)->val1 == MO_TRIPLEATTACK) {
@@ -7690,8 +7700,7 @@ enum damage_lv battle_weapon_attack(block_list* src, block_list* target, t_tick 
 			status_change_end(src, SC_SKILLRATE_UP);
 		}
 		if (rnd()%100 < triple_rate) {
-			//Need to apply canact_tick here because it doesn't go through skill_castend_id
-			sd->ud.canact_tick = i64max(tick + skill_delayfix(src, MO_TRIPLEATTACK, skillv), sd->ud.canact_tick);
+			// [RESTART] canact_tick removed — MO_TRIPLEATTACK has no aftercast delay
 			if( skill_attack(BF_WEAPON,src,src,target,MO_TRIPLEATTACK,skillv,tick,0) )
 				return ATK_DEF;
 			return ATK_MISS;

@@ -1835,6 +1835,12 @@ void mob_setstate(mob_data& md, MobSkillState skillstate) {
 	}
 }
 
+/// [RESTART] Counts alive PCs within range for boss reflect shield proximity check
+static int32 boss_reflect_alive_pc(block_list *bl, va_list)
+{
+	return (bl->prev != nullptr && !status_isdead(*bl)) ? 1 : 0;
+}
+
 /*==========================================
  * AI of MOB whose is near a Player
  *------------------------------------------*/
@@ -1864,6 +1870,33 @@ static bool mob_ai_sub_hard(mob_data *md, t_tick tick)
 	if(( md->sc.opt1 && md->sc.opt1 != OPT1_STONEWAIT && md->sc.opt1 != OPT1_BURNING ) || status_db.hasSCF(&md->sc, SCF_MOBLOSETARGET)) {//Should reset targets.
 		md->target_id = md->attacked_id = md->norm_attacked_id = 0;
 		return false;
+	}
+
+	// [RESTART] Boss protocol reflect shield: toggle SC based on alive player proximity (5-cell radius)
+	if (md->status.class_ == CLASS_BOSS) {
+		bool has_nearby_pc = map_foreachinallrange(boss_reflect_alive_pc, md, 5, BL_PC) > 0;
+		status_change *bsc = status_get_sc(md);
+		if (has_nearby_pc) {
+			if (bsc && bsc->getSCE(SC_RESTART_BOSS_REFLECT))
+				status_change_end(md, SC_RESTART_BOSS_REFLECT);
+		} else {
+			if (!bsc || !bsc->getSCE(SC_RESTART_BOSS_REFLECT))
+				sc_start(md, md, SC_RESTART_BOSS_REFLECT, 100, 0, INFINITE_TICK);
+		}
+	}
+
+	// [RESTART] Boss reset: if player-damaged, HP < 100%, and no player damage for 30s → full reset
+	if (md->status.class_ == CLASS_BOSS &&
+	    md->last_player_damage_tick > 0 &&
+	    md->status.hp < md->status.max_hp &&
+	    DIFF_TICK(tick, md->last_player_damage_tick) >= 30000) {
+		status_percent_heal(md, 100, 0);
+		if (md->spawn)
+			unit_warp(md, md->spawn->m, md->spawn->x, md->spawn->y, CLR_TELEPORT);
+		mob_deleteslave(md);
+		mob_unlocktarget(md, tick);
+		mobskill_use(md, tick, MSC_SPAWN);
+		md->last_player_damage_tick = 0;
 	}
 
 	// Before a monster processes its AI, it will check for a skill
@@ -2743,6 +2776,10 @@ void mob_log_damage(mob_data* md, block_list* src, int64 damage, int64 damage_ta
 	if( char_id == 0 ){
 		return;
 	}
+
+	// [RESTART] Track last player-sourced damage tick for boss reset mechanic
+	if (damage > 0 && flag != MDLF_SELF)
+		md->last_player_damage_tick = gettick();
 
 	// Check if the character is already in damage log
 	for( auto& entry : md->dmglog ){

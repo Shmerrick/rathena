@@ -33,8 +33,6 @@ Header:
   Version: 1
 
 Body:
-  - Weapon: Knuckle
-    Medium: 75
-    Large: 50
+  - Weapon: Knuckle # [RESTART] 100/100/100 (was Medium:75 Large:50)
   - Weapon: Whip
     Large: 50

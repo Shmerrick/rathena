@@ -9956,3 +9956,32 @@ Body:
       NoDispell: true
       NoBanishingBuster: true
       NoClearance: true
+  # [RESTART] Monk combo stage display buffs — 5-second window buffs replacing ring animation
+  - Status: Restart_Combo1
+    Icon: EFST_RESTART_COMBO1
+    Flags:
+      NoClearbuff: true
+      NoDispell: true
+      NoBanishingBuster: true
+      NoClearance: true
+  - Status: Restart_Combo2
+    Icon: EFST_RESTART_COMBO2
+    Flags:
+      NoClearbuff: true
+      NoDispell: true
+      NoBanishingBuster: true
+      NoClearance: true
+  - Status: Restart_Combo3
+    Icon: EFST_RESTART_COMBO3
+    Flags:
+      NoClearbuff: true
+      NoDispell: true
+      NoBanishingBuster: true
+      NoClearance: true
+  - Status: Restart_Boss_Reflect
+    Icon: EFST_RESTART_BOSS_REFLECT
+    Flags:
+      NoClearbuff: true
+      NoDispell: true
+      NoBanishingBuster: true
+      NoClearance: true

@@ -375,6 +375,7 @@ struct mob_data : public block_list {
 	int32 bg_id; // BattleGround System
 
 	t_tick next_walktime,next_thinktime,last_linktime,last_pcneartime,last_canmove,last_skillcheck;
+	t_tick last_player_damage_tick; ///< [RESTART] Last tick when a player (or player's summon) dealt damage; used for boss reset timer.
 	t_tick trickcasting; // Special state where you show a fake castbar while moving
 	int16 move_fail_count;
 	int16 lootitem_count;

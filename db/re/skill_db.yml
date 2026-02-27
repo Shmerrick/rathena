@@ -7290,6 +7290,8 @@ Body:
     Description: Raging Trifecta Blow
     MaxLevel: 10
     Type: Weapon
+    DamageFlags:
+      Critical: true
     Flags:
       TargetTrap: true
     Range: -1
@@ -7401,7 +7403,7 @@ Body:
   - Id: 268
     Name: MO_STEELBODY
     Description: Mental Strength
-    MaxLevel: 5
+    MaxLevel: 1 # [RESTART] single level at old lv5 values
     Type: Weapon
     TargetType: Self
     DamageFlags:
@@ -7409,17 +7411,7 @@ Body:
     Hit: Single
     HitCount: 1
     CastTime: 2500
-    Duration1:
-      - Level: 1
-        Time: 30000
-      - Level: 2
-        Time: 60000
-      - Level: 3
-        Time: 90000
-      - Level: 4
-        Time: 120000
-      - Level: 5
-        Time: 150000
+    Duration1: 150000 # [RESTART] old lv5 duration (was 30000–150000 over 5 levels)
     FixedCastTime: 2500
     Requires:
       SpCost: 200
@@ -7480,7 +7472,7 @@ Body:
   - Id: 270
     Name: MO_EXPLOSIONSPIRITS
     Description: Fury
-    MaxLevel: 5
+    MaxLevel: 1 # [RESTART] single level at old lv5 values; crit bonus hardcoded to 200 in status.cpp
     Type: Weapon
     TargetType: Self
     DamageFlags:
@@ -7545,29 +7537,9 @@ Body:
         Time: 1000
     Requires:
       SpCost: 1
-      Weapon:
+      Weapon: # [RESTART] bare fists or knuckles only
         Fist: true
-        Dagger: true
-        1hSword: true
-        2hSword: true
-        1hSpear: true
-        2hSpear: true
-        1hAxe: true
-        2hAxe: true
-        Mace: true
-        2hMace: true
-        Staff: true
         Knuckle: true
-        Musical: true
-        Whip: true
-        Book: true
-        Katar: true
-        Revolver: true
-        Rifle: true
-        Gatling: true
-        Shotgun: true
-        Grenade: true
-        Huuma: true
       Status:
         Explosionspirits: true
       SpiritSphereCost: 5
@@ -7578,6 +7550,8 @@ Body:
     MaxLevel: 5
     Type: Weapon
     TargetType: Self
+    DamageFlags:
+      Critical: true
     Flags:
       NoTargetSelf: true
     Range: -2
@@ -7602,29 +7576,9 @@ Body:
           Amount: 8
         - Level: 5
           Amount: 9
-      Weapon:
+      Weapon: # [RESTART] bare fists or knuckles only
         Fist: true
-        Dagger: true
-        1hSword: true
-        2hSword: true
-        1hSpear: true
-        2hSpear: true
-        1hAxe: true
-        2hAxe: true
-        Mace: true
-        2hMace: true
-        Staff: true
         Knuckle: true
-        Musical: true
-        Whip: true
-        Book: true
-        Katar: true
-        Revolver: true
-        Rifle: true
-        Gatling: true
-        Shotgun: true
-        Grenade: true
-        Huuma: true
   - Id: 273
     Name: MO_COMBOFINISH
     Description: Raging Thrust
@@ -7633,6 +7587,7 @@ Body:
     TargetType: Self
     DamageFlags:
       Splash: true
+      Critical: true
     Flags:
       NoTargetSelf: true
       TargetTrap: true
@@ -7655,29 +7610,9 @@ Body:
           Amount: 6
         - Level: 5
           Amount: 7
-      Weapon:
+      Weapon: # [RESTART] bare fists or knuckles only
         Fist: true
-        Dagger: true
-        1hSword: true
-        2hSword: true
-        1hSpear: true
-        2hSpear: true
-        1hAxe: true
-        2hAxe: true
-        Mace: true
-        2hMace: true
-        Staff: true
         Knuckle: true
-        Musical: true
-        Whip: true
-        Book: true
-        Katar: true
-        Revolver: true
-        Rifle: true
-        Gatling: true
-        Shotgun: true
-        Grenade: true
-        Huuma: true
       SpiritSphereCost: 1
   - Id: 274
     Name: SA_ADVANCEDBOOK

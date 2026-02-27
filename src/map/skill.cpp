@@ -1348,7 +1348,7 @@ int32 skill_additional_effect( block_list* src, block_list *bl, uint16 skill_id,
 					int32 skill;
 
 					// Automatic trigger of Blitz Beat
-					if (pc_isfalcon(sd) && sd->status.weapon == W_BOW && (skill = pc_checkskill(sd, HT_BLITZBEAT)) > 0 && rnd() % 1000 <= sstatus->luk * 10 / 3 + 1) {
+					if (pc_isfalcon(sd) && (skill = pc_checkskill(sd, HT_BLITZBEAT)) > 0 && rnd() % 1000 <= sstatus->luk * 10 / 2 + 1) { // [RESTART] any weapon (was bow-only); luk/2 (was luk/3)
 						int32 rate;
 
 						if ((sd->class_ & MAPID_THIRDMASK) == MAPID_RANGER)
@@ -2320,6 +2320,10 @@ static int32 skill_magic_reflect(block_list* src, block_list* bl, int32 type)
 	status_change *sc = status_get_sc(bl);
 	map_session_data* sd = BL_CAST(BL_PC, bl);
 
+	// [RESTART] Boss protocol reflect shield: reflect 100% magic back at full original damage (type 4)
+	if (sc && sc->getSCE(SC_RESTART_BOSS_REFLECT))
+		return 4;
+
 	// Deadly Projection null's all magic reflection.
 	if (sc && sc->getSCE(SC_DEADLY_DEFEASANCE))
 		return 0;
@@ -2472,13 +2476,13 @@ void skill_combo(block_list* src,block_list *dsrc, block_list *bl, uint16 skill_
 		switch (skill_id) {
 		case MO_TRIPLEATTACK:
 			if (pc_checkskill(sd, MO_CHAINCOMBO) > 0 || pc_checkskill(sd, SR_DRAGONCOMBO) > 0) {
-				duration = 1;
+				duration = 5000; // [RESTART] 5-second buff window (was aftercast-delay-based)
 				target_id = 0; // Will target current auto-target instead
 			}
 			break;
 		case MO_CHAINCOMBO:
 			if (pc_checkskill(sd, MO_COMBOFINISH) > 0 && sd->spiritball >= 1) {
-				duration = 1;
+				duration = 5000; // [RESTART] 5-second buff window
 				target_id = 0; // Will target current auto-target instead
 			}
 			break;
@@ -2486,15 +2490,15 @@ void skill_combo(block_list* src,block_list *dsrc, block_list *bl, uint16 skill_
 			if (sd->status.party_id > 0) //bonus from SG_FRIEND [Komurka]
 				party_skill_check(sd, sd->status.party_id, skill_id, skill_lv);
 			if (pc_checkskill(sd, CH_TIGERFIST) > 0 && sd->spiritball >= 1) {
-				duration = 1;
+				duration = 5000; // [RESTART] 5-second buff window
 				target_id = 0; // Will target current auto-target instead
 			}
 			else if (pc_checkskill(sd, CH_CHAINCRUSH) > 0 && sd->spiritball >= 2) {
-				duration = 1;
+				duration = 5000; // [RESTART] 5-second buff window
 				target_id = 0; // Will target current auto-target instead
 			}
 			else if (pc_checkskill(sd, MO_EXTREMITYFIST) > 0 && sd->spiritball >= 4 && sd->sc.getSCE(SC_EXPLOSIONSPIRITS) != nullptr) {
-				duration = 1;
+				duration = 5000; // [RESTART] 5-second buff window
 				target_id = 0; // Will target current auto-target instead
 			}
 			break;
@@ -2558,7 +2562,33 @@ void skill_combo(block_list* src,block_list *dsrc, block_list *bl, uint16 skill_
 		if(sd && duration==1) duration = DIFF_TICK(sd->ud.canact_tick, tick); //Auto calc duration
 		duration = i64max(status_get_amotion(src),duration); //Never less than aMotion
 		sc_start4(src,src,SC_COMBO,100,skill_id,target_id,nodelay,0,duration);
-		clif_combo_delay( *src, duration );
+
+		// [RESTART] Monk combo stage display buffs: replace ring animation with 5-second buff icons
+		bool monk_combo = false;
+		if (sd) {
+			switch (skill_id) {
+			case MO_TRIPLEATTACK:
+				status_change_end(src, SC_RESTART_COMBO2);
+				status_change_end(src, SC_RESTART_COMBO3);
+				sc_start(src, src, SC_RESTART_COMBO1, 100, 0, 5000);
+				monk_combo = true;
+				break;
+			case MO_CHAINCOMBO:
+				status_change_end(src, SC_RESTART_COMBO1);
+				status_change_end(src, SC_RESTART_COMBO3);
+				sc_start(src, src, SC_RESTART_COMBO2, 100, 0, 5000);
+				monk_combo = true;
+				break;
+			case MO_COMBOFINISH:
+				status_change_end(src, SC_RESTART_COMBO1);
+				status_change_end(src, SC_RESTART_COMBO2);
+				sc_start(src, src, SC_RESTART_COMBO3, 100, 0, 5000);
+				monk_combo = true;
+				break;
+			}
+		}
+		if (!monk_combo)
+			clif_combo_delay( *src, duration );
 	}
 }
 
@@ -2850,7 +2880,8 @@ int64 skill_attack (int32 attack_type, block_list* src, block_list *dsrc, block_
 			// Official Magic Reflection Behavior : damage reflected depends on gears caster wears, not target
 #if MAGIC_REFLECTION_TYPE
 #ifdef RENEWAL
-			if( dmg.dmg_lv != ATK_MISS ) { //Wiz SL cancelled and consumed fragment
+			// [RESTART] type 4 = boss reflect shield: skip recalculation, original damage returns unchanged
+			if( dmg.dmg_lv != ATK_MISS && type != 4 ) { //Wiz SL cancelled and consumed fragment
 #else
 			// issue:6415 in pre-renewal Kaite reflected the entire damage received
 			// regardless of caster's equipment (Aegis 11.1)
@@ -8891,20 +8922,22 @@ bool skill_check_condition_castbegin( map_session_data& sd, uint16 skill_id, uin
 		case MO_EXTREMITYFIST:
 	//		if(sc && sc->getSCE(SC_EXTREMITYFIST)) //To disable Asura during the 5 min skill block uncomment this...
 	//			return false;
-			if( sc && (sc->getSCE(SC_BLADESTOP) || sc->getSCE(SC_CURSEDCIRCLE_ATKER)) )
-				break;
+			// [RESTART] Asura requires combo (MO_COMBOFINISH/CH_CHAINCRUSH) OR Root (SC_BLADESTOP).
+			// Fury (SC_EXPLOSIONSPIRITS) is always required but enforced by DB Status requirement, not here.
+			// Fury active alone is NOT sufficient — combo or Root must also be present.
+			if( sc && sc->getSCE(SC_BLADESTOP) )
+				break; // via Root (MO_BLADESTOP) — allowed
 			if( sc && sc->getSCE(SC_COMBO) ) {
 				switch(sc->getSCE(SC_COMBO)->val1) {
 					case MO_COMBOFINISH:
 					case CH_CHAINCRUSH:
-						break;
+						break; // via combo — allowed
 					default:
 						return false;
 				}
-			}
-			else if( !unit_can_move(&sd) ) { //Placed here as ST_MOVE_ENABLE should not apply if rooted or on a combo. [Skotlex]
+			} else {
 				clif_skill_fail( sd, skill_id );
-				return false;
+				return false; // [RESTART] no combo and no Root — blocked regardless of Fury
 			}
 			sd.spiritball_old = sd.spiritball;
 			break;
@@ -10422,6 +10455,8 @@ struct s_skill_condition skill_get_requirement(map_session_data* sd, uint16 skil
 		case CH_CHAINCRUSH:
 			if(sc && sc->getSCE(SC_SPIRIT) && sc->getSCE(SC_SPIRIT)->val2 == SL_MONK)
 				req.sp = 2; //Monk Spirit makes monk/champion combo skills cost 2 SP regardless of original cost
+			if(sc && sc->getSCE(SC_EXPLOSIONSPIRITS))
+				req.sp = 0; // [RESTART] Fury state: combo skills are SP-free
 			break;
 		case MO_BODYRELOCATION:
 			if( sc && sc->getSCE(SC_EXPLOSIONSPIRITS) )
@@ -10831,9 +10866,7 @@ int32 skill_delayfix(block_list *bl, uint16 skill_id, uint16 skill_lv)
 
 	// Delay reductions
 	switch (skill_id) {	//Monk combo skills have their delay reduced by agi/dex.
-		case MO_TRIPLEATTACK:
-		case MO_CHAINCOMBO:
-		case MO_COMBOFINISH:
+		// [RESTART] MO_TRIPLEATTACK/MO_CHAINCOMBO/MO_COMBOFINISH removed — no aftercast delay (use DB value of 0)
 		case CH_TIGERFIST:
 		case CH_CHAINCRUSH:
 		case SR_DRAGONCOMBO:
@@ -13361,7 +13394,7 @@ bool skill_produce_mix(map_session_data *sd, uint16 skill_id, t_itemid nameid, i
 			case BS_ENCHANTEDSTONE:
 				// Ores & Metals Refining - skill bonuses are straight from kRO website [DracoRPG]
 				i = pc_checkskill(sd,skill_id);
-				make_per = sd->status.job_level*20 + status->dex*10 + status->luk*10; //Base chance
+				make_per = sd->status.job_level*100; // [RESTART] +1% per job level; DEX/LUK removed
 				switch (nameid) {
 					case ITEMID_IRON:
 						make_per += 4000+i*500; // Temper Iron bonus: +26/+32/+38/+44/+50
@@ -13389,8 +13422,7 @@ bool skill_produce_mix(map_session_data *sd, uint16 skill_id, t_itemid nameid, i
 			case AM_TWILIGHT2:
 			case AM_TWILIGHT3:
 				make_per = pc_checkskill(sd,AM_LEARNINGPOTION)*50
-					+ pc_checkskill(sd,AM_PHARMACY)*300 + sd->status.job_level*20
-					+ (status->int_/2)*10 + status->dex*10+status->luk*10;
+					+ pc_checkskill(sd,AM_PHARMACY)*300 + sd->status.job_level*100; // [RESTART] +1% per job level; INT/DEX/LUK removed
 				if (hom_is_active(sd->hd)) {//Player got a homun
 					int32 skill;
 					if ((skill = hom_checkskill(sd->hd,HVAN_INSTRUCT)) > 0) //His homun is a vanil with instruction change
@@ -13619,7 +13651,7 @@ bool skill_produce_mix(map_session_data *sd, uint16 skill_id, t_itemid nameid, i
 				break;
 		}
 	} else { // Weapon Forging - skill bonuses are straight from kRO website, other things from a jRO calculator [DracoRPG]
-		make_per = 5000 + ((sd->class_&JOBL_THIRD)?1400:sd->status.job_level*20) + status->dex*10 + status->luk*10; // Base
+		make_per = 5000 + sd->status.job_level*100; // [RESTART] +1% per job level; JOBL_THIRD flat bonus and DEX/LUK removed
 		make_per += pc_checkskill(sd,skill_id)*500; // Smithing skills bonus: +5/+10/+15
 		// Weaponry Research bonus: +1/+2/+3/+4/+5/+6/+7/+8/+9/+10
 		make_per += pc_checkskill(sd,BS_WEAPONRESEARCH)*100;
