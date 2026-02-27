@@ -20,6 +20,12 @@
 - [ ] Criterion 1
 - [ ] Criterion 2
 
+## Permissions
+
+- code-changes: allowed | **forbidden**  ← set explicitly for every task
+- branch-push: allowed | **forbidden**
+- Notes: (e.g., "read-only git commands only; no file modifications")
+
 ## Implementation Notes
 
 - Constraints:

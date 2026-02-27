@@ -123,3 +123,36 @@ A task is `DONE` only when:
 - Keep commits focused to a single task unless explicitly grouped.
 - Do not mix release operations with feature implementation in one task.
 - Escalate unclear requirements by moving task status to `BLOCKED` with a concrete question.
+- Analysis tasks (evaluation, research, review) **must not modify source or build files**. Only
+  git read commands and task-file updates are permitted unless `## Permissions` in the task file
+  explicitly allows code changes.
+- `PARALLEL_DEV` tasks **must** be executed via `parallel-judge.ps1`, not `prompty` directly.
+  Direct `prompty` runs bypass branch isolation and the `RequireStagedChanges` enforcement.
+- Each task file **must** include a `## Permissions` section specifying whether code changes and
+  branch pushes are allowed. Absence of that section defaults to: code-changes forbidden.
+
+## Framework Reevaluation — 2026-02-26
+
+Five issues were identified from TASK-0001 execution and documented here as standing policy:
+
+**Issue 1 — Codex ran on RESTART-INTEGRATION directly.**
+`parallel-judge.ps1` creates isolated per-agent branches/worktrees; it was not used. Codex ran via
+`prompty` only, operating directly on the integration branch. Fix: `PARALLEL_DEV` entry point is
+`parallel-judge.ps1` exclusively.
+
+**Issue 2 — Claude never ran.**
+TASK-0001 log for Claude is 0 bytes. The parallel execution never happened. Fix: orchestrator must
+verify both logs are non-empty before recording task results.
+
+**Issue 3 — Scope creep: Codex modified source on an analysis task.**
+TASK-0001 scope was read-only evaluation. Codex modified `src/map/CMakeLists.txt` without
+authorization. Fix: `## Permissions` section in task files; analysis tasks default to
+code-changes forbidden.
+
+**Issue 4 — No arbitration occurred.**
+Arbiter fields in TASK-0001.md remain empty; the workflow never completed. Fix: arbitration is
+required before any `PARALLEL_DEV` result is merged or pushed.
+
+**Issue 5 — Mixed commit.**
+Agent framework files and the Codex code change were bundled into one commit. Fix: keep framework
+scaffolding commits separate from any task-driven code changes.
