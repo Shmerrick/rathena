@@ -44,7 +44,22 @@ IF NOT EXIST "%WARP_EXE%" (
     EXIT /B 1
 )
 
-:: ---- 3. Determine source exe and apply patches ----
+:: ---- 3. Disable GameGuard folder (if still present) ----
+:: Rename the GameGuard folder so the client cannot load it even if the
+:: NoGGuard patch left partial references. Safe to repeat — already-renamed
+:: folder is skipped.
+SET GG_DIR=
+IF "%~1"=="" (
+    SET GG_DIR=C:\Users\Admin\Desktop\20250416Ragnarok_en\GameGuard
+) ELSE (
+    SET GG_DIR=%~dp1GameGuard
+)
+IF EXIST "!GG_DIR!" (
+    echo [RESTART] Disabling GameGuard folder: !GG_DIR!
+    RENAME "!GG_DIR!" "GameGuard_disabled"
+)
+
+:: ---- 4. Determine source exe and apply patches ----
 IF "%~1"=="" (
     :: No argument — use paths from session file
     echo [RESTART] Using client path from warp-restart.yml

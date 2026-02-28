@@ -473,7 +473,9 @@ Tools for creating/editing GRFs: [GRF Editor](https://rathena.org/board/topic/77
 
 ### 6.5 Launching the Client
 
-Run the **patched** `Ragexe.exe` (created by WARP in step 6.2). Do **not** run `Ragnarok.exe` — that is the official patcher/launcher and will not connect to a private server.
+Run the **patched** `Ragexe_patched.exe` (created by `patch-client.bat`).
+
+> **Do NOT run `Ragnarok.exe`** — that is the official Gravity launcher. It will attempt to connect to Gravity's patch server, may overwrite client files, and will flag `Ragexe_patched.exe` with an integrity scan. If you accidentally run it, re-run `patch-client.bat` to create a fresh patched exe.
 
 If the client shows a list of servers, select **RESTART** (or whatever you set `<display>` to) and log in.
 
