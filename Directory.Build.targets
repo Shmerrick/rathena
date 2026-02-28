@@ -1,0 +1,32 @@
+<!--
+  Directory.Build.targets — RESTART Pre-Build Hooks
+
+  MSBuild automatically imports this file for every project in the solution.
+
+  This target updates the WARP git submodules to their latest upstream commits
+  before each build, ensuring we always compile against the newest patch scripts.
+
+  To disable for a specific build, set: /p:SkipWarpUpdate=true
+-->
+<Project>
+
+  <!--
+    Run only for the map-server project to avoid parallel git lock contention.
+    map-server is the last major project to build, so this effectively runs
+    once per solution build at the start of the map-server compile phase.
+    Set /p:SkipWarpUpdate=true to skip entirely.
+  -->
+  <Target Name="UpdateWarpSubmodules"
+          BeforeTargets="Build"
+          Condition="'$(SkipWarpUpdate)' != 'true' AND '$(MSBuildProjectName)' == 'map-server'">
+
+    <Message Text="[RESTART] Checking for WARP submodule updates..." Importance="high" />
+
+    <Exec Command="git submodule update --remote tools/warp tools/warp2025"
+          WorkingDirectory="$(SolutionDir)"
+          ContinueOnError="true"
+          IgnoreExitCode="true" />
+
+  </Target>
+
+</Project>

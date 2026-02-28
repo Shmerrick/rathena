@@ -1,0 +1,29 @@
+# WARP Session File — RESTART Private Server Client Patches
+#
+# Used by patch-client.bat with WARP_console.exe.
+# Applies the minimum set of patches required to connect a vanilla Ragnarok
+# client to the RESTART private server.
+#
+# Patch source: tools/warp (Neo-Mind/WARP, rock_win32 branch)
+#
+# To apply manually:
+#   tools\warp\win32\WARP_console.exe using tools\warp-restart.yml
+#
+# The 'from' and 'to' paths below are defaults. Override them by passing
+# arguments to patch-client.bat, or edit them here for your setup.
+
+from: C:\Users\Admin\Desktop\20250416Ragnarok_en\Ragexe.exe
+to:   C:\Users\Admin\Desktop\20250416Ragnarok_en\Ragexe_patched.exe
+
+patches:
+    # Disable GameGuard anti-cheat — blocks connections to private servers
+    - NoGGuard
+
+    # Disable map server packet encryption — matches server-side #undef PACKET_OBFUSCATION
+    - NoPacketEncr
+
+    # Disable login/char server packet encryption
+    - NoEncrForLC
+
+    # Read loose data\ folder before GRF files — required for clientinfo.xml to load
+    - DataFolderFirst

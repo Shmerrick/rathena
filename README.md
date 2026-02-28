@@ -14,6 +14,7 @@ A custom Ragnarok Online server based on rAthena, combining Renewal content with
 5. [Run the Server](#5-run-the-server)
 6. [Configure the Client](#6-configure-the-client)
    - 6.2 [Patch the Client with WARP (Required)](#62-patch-the-client-with-warp-required)
+   - See also: `tools/warp-restart.yml` for the patch list
 7. [Creating a GM Account](#7-creating-a-gm-account)
 8. [Config File Reference](#8-config-file-reference)
 9. [Troubleshooting](#9-troubleshooting)
@@ -366,27 +367,67 @@ Open `data\clientinfo.xml` in a text editor (Notepad++ recommended — the file 
 
 The stock `Ragexe.exe` has **GameGuard** (anti-cheat) enabled and uses **packet encryption** that is incompatible with a private server. You must patch it using **WARP** before it will connect.
 
-**One-time setup:**
+The WARP tool is integrated as a git submodule in `tools/warp/` (Neo-Mind/WARP) and `tools/warp2025/` (hiphop9/Warp2025). These are always kept up to date automatically when you build.
 
-1. Download WARP from: https://github.com/hiphop9/Warp2025/releases
-   Download the latest `.zip` release and extract it anywhere.
+#### Automated patching (recommended)
 
-2. Open WARP, click **Load Client**, and select:
-   `Ragexe.exe` (in the client folder)
+Run from the repository root:
 
-3. In the patch list, find and enable these patches:
+```bat
+patch-client.bat
+```
 
-   | Patch name | Why it's needed |
-   |---|---|
-   | `Disable Game Guard` | GameGuard blocks connections to unofficial servers |
-   | `Disable Packet Encryption` | Matches the server-side setting — without this, packets are garbled |
-   | `Load Custom lua files` | Allows the client to load item/skill names from custom Lua in the data folder |
+This script:
+1. Pulls the latest WARP patch scripts from both submodules
+2. Applies the RESTART patch set to `Ragexe.exe` using `WARP_console.exe`
+3. Saves the result as `Ragexe_patched.exe` in the client folder
 
-4. Click **Apply**. WARP saves a patched copy of the exe alongside the original (e.g., `Ragexe_patched.exe`).
+To patch a client at a different path:
 
-5. Use the **patched exe** to launch the game from now on. Keep the original untouched.
+```bat
+patch-client.bat "D:\Ragnarok\Ragexe.exe"
+```
 
-> **Note:** You only need to do this once. If you update the client exe, you must re-patch it.
+#### Patches applied (`tools/warp-restart.yml`)
+
+| Patch key | Title | Purpose |
+|---|---|---|
+| `NoGGuard` | Disable Game Guard | Removes anti-cheat that blocks private server connections |
+| `NoPacketEncr` | Disable Map packet encryption | Matches `#undef PACKET_OBFUSCATION` in the server build |
+| `NoEncrForLC` | Disable Login/Char encryption | Disables encryption on login and char server packets |
+| `DataFolderFirst` | Read data folder first | Loads loose `data\` files before GRF — required for `clientinfo.xml` |
+
+To change which patches are applied, edit `tools/warp-restart.yml`.
+
+#### Manual patching (alternative)
+
+If `patch-client.bat` fails, you can run WARP directly:
+
+```bat
+tools\warp\win32\WARP_console.exe using tools\warp-restart.yml
+```
+
+Or open the GUI: `tools\warp\win32\WARP.exe`
+
+#### Initial submodule setup
+
+If you just cloned the repository, initialize submodules first:
+
+```bat
+git submodule update --init --recursive
+```
+
+This downloads `tools/warp` and `tools/warp2025`.
+
+#### WARP submodule auto-update during builds
+
+A `Directory.Build.targets` file at the repository root tells MSBuild to run `git submodule update --remote tools/warp tools/warp2025` before every build. This keeps the WARP patch scripts current automatically.
+
+To skip the update for a specific build:
+
+```bat
+MSBuild.exe rAthena.sln -p:SkipWarpUpdate=true ...
+```
 
 ### 6.3 GRF Load Order — `DATA.ini`
 
@@ -576,6 +617,14 @@ FLUSH PRIVILEGES;
 ### "Unknown packet 0x..." in server console
 
 The client version does not match the server's expected packet version. The `<version>` field in `clientinfo.xml` may need adjustment, or the server needs a matching `PACKETVER` in its build configuration.
+
+### `patch-client.bat` — "WARP_console.exe not found"
+
+The WARP submodule has not been initialized. Run:
+
+```bat
+git submodule update --init --recursive
+```
 
 ### Map server crashes at startup
 

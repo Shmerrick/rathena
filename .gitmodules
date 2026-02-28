@@ -1,0 +1,7 @@
+[submodule "tools/warp"]
+	path = tools/warp
+	url = https://github.com/Neo-Mind/WARP
+	branch = rock_win32
+[submodule "tools/warp2025"]
+	path = tools/warp2025
+	url = https://github.com/hiphop9/Warp2025
