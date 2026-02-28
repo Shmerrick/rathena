@@ -9,6 +9,7 @@
  * For detailed guidance on these check http://rathena.org/wiki/SRC/config/
  **/
 
-
+// [RESTART] Match the April 2025 English client (20250416Ragnarok_en)
+#define PACKETVER 20250402
 
 #endif /* CONFIG_CUSTOM_DEFINES_PRE_HPP */

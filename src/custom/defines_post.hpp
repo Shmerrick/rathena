@@ -9,6 +9,9 @@
  * For detailed guidance on these check http://rathena.org/wiki/SRC/config/
  **/
 
-
+// [RESTART] Disable packet obfuscation for private server use.
+// Client must be patched with WARP "Disable Packet Encryption" patch to match.
+#undef PACKET_OBFUSCATION
+#undef PACKET_OBFUSCATION_WARN
 
 #endif /* CONFIG_CUSTOM_DEFINES_POST_HPP */
