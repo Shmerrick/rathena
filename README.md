@@ -276,6 +276,8 @@ log_db_pw: password
 
 ## 5. Run the Server
 
+> **Start order is critical.** Each server must be fully ready before the next one starts. The bat files handle this automatically.
+
 ### Using `runserver.bat` (Recommended)
 
 The repository includes `runserver.bat`, a full server management script. Run it from the repository root:
@@ -306,6 +308,16 @@ Watch the console output. Each server prints a ready message when it finishes lo
 - Login server: `Login server is ready and listening on port 6900`
 - Char server: `Character server is ready and listening on port 6121`
 - Map server: `Map server is ready and listening on port 5121`
+
+### Web Server
+
+The web server (`web-server.exe`) is required for modern clients that use the web authentication token system (`use_web_auth_token: yes` in `login_athena.conf`). Start it alongside the other three:
+
+```bat
+webserv.bat
+```
+
+`runserver.bat` starts it automatically.
 
 ### Stopping the Servers
 
@@ -486,22 +498,22 @@ If other players want to connect over your LAN:
 
 ### 7.1 Register an Account
 
-By default `new_account: no` — so you must insert accounts directly into the database:
+By default `new_account: no` — accounts must be inserted directly into the database:
 
 ```sql
-INSERT INTO login (userid, user_pass, sex, email)
-VALUES ('admin', 'yourpassword', 'M', 'admin@localhost');
+INSERT INTO login (userid, user_pass, sex, email, group_id)
+VALUES ('admin', 'yourpassword', 'M', 'admin@localhost', 99);
 ```
 
-Or temporarily enable in-game registration:
+> **Passwords** are stored as plain text (`use_MD5_passwords: no` in `login_athena.conf`). Set the field exactly as you want users to type it.
+
+To allow players to self-register via the client login screen:
 
 1. Set `new_account: yes` in `conf/login_athena.conf`
-2. Launch the client and create your account by appending `_M` or `_F` to the username field (e.g. `admin_M` with the password)
-3. Set `new_account: no` again afterward
+2. Client: type username as `name_M` or `name_F` (the suffix sets gender)
+3. Set `new_account: no` again when done
 
 ### 7.2 Grant GM Level 99
-
-After the account exists in the database:
 
 ```sql
 UPDATE login SET group_id = 99 WHERE userid = 'admin';
@@ -608,6 +620,24 @@ FLUSH PRIVILEGES;
 - Check that `userid`/`passwd` in `char_athena.conf` and `map_athena.conf` match exactly.
 - Check that `login_port` in `login_athena.conf` and `login_port` in `char_athena.conf` match.
 
+### Client connects to login but hangs on char server / "Connecting..." loop
+
+The server may have auto-detected the wrong network interface (e.g. a virtual adapter at `172.x.x.x` instead of `127.0.0.1`). The client gets sent the wrong IP for the char and map servers.
+
+Fix: add these to `conf/import/char_conf.txt` and `conf/import/map_conf.txt`:
+
+```conf
+# conf/import/char_conf.txt
+char_ip: 127.0.0.1
+login_ip: 127.0.0.1
+
+# conf/import/map_conf.txt
+map_ip: 127.0.0.1
+char_ip: 127.0.0.1
+```
+
+Restart all servers after changing these files.
+
 ### Client shows "Failed to connect to server"
 
 - Verify `<address>` and `<port>` in `data\clientinfo.xml` match the running login server's IP and port.
@@ -617,6 +647,17 @@ FLUSH PRIVILEGES;
 ### "Unknown packet 0x..." in server console
 
 The client version does not match the server's expected packet version. The `<version>` field in `clientinfo.xml` may need adjustment, or the server needs a matching `PACKETVER` in its build configuration.
+
+### `patch-client.bat` — WARP patches fail with "reference location not found"
+
+WARP's patch scripts use byte-pattern matching against the client binary. If a patch fails, the script couldn't find the expected code pattern in the exe — this happens when the client is newer than the last script update.
+
+When this occurs:
+- **`NoGGuard`** (GameGuard disable) — most likely to succeed; if it fails, GameGuard will block the connection.
+- **`NoPacketEncr` / `NoEncrForLC`** — packet encryption patches. If these fail on a 2025+ client, the client may already use a different (or no) obfuscation scheme. The server is compiled with `#undef PACKET_OBFUSCATION` so it does not attempt decryption. Attempt connection anyway — it may work.
+- **`DataFolderFirst`** — data folder priority. If this fails, `clientinfo.xml` is still read via the `data\` entry in `DATA.ini`.
+
+WARP patch scripts are updated regularly. Run `git submodule update --remote tools/warp tools/warp2025` to pull the latest scripts, then re-run `patch-client.bat`.
 
 ### `patch-client.bat` — "WARP_console.exe not found"
 
