@@ -7,7 +7,8 @@ SkillNapalmBeat::SkillNapalmBeat() : SkillImplRecursiveDamageSplash(MG_NAPALMBEA
 }
 
 void SkillNapalmBeat::calculateSkillRatio(const Damage *wd, const block_list *src, const block_list *target, uint16 skill_lv, int32 &base_skillratio, int32 mflag) const {
-	base_skillratio += -30 + 10 * skill_lv;
+	// [RESTART] lv1=50% ... lv10=500% MATK (step 50%/level). MDEF bypass handled in battle.cpp.
+	base_skillratio += -100 + 50 * skill_lv;
 }
 
 void SkillNapalmBeat::castendDamageId(block_list *src, block_list *target, uint16 skill_lv, t_tick tick, int32 &flag) const {

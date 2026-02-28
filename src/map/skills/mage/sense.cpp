@@ -6,6 +6,7 @@
 #include "map/clif.hpp"
 #include "map/mob.hpp"
 #include "map/pc.hpp"
+#include "map/status.hpp"
 
 SkillSense::SkillSense() : SkillImpl(WZ_ESTIMATION) {
 }
@@ -23,8 +24,11 @@ void SkillSense::castendNoDamageId(block_list* src, block_list* target, uint16 s
 		return;
 	}
 
-	if (dstmd != nullptr)
+	if (dstmd != nullptr) {
 		clif_skill_estimation( *sd, *dstmd );
+		// [RESTART] Sense debuff: -10% MDEF for 60 seconds
+		sc_start(src, target, SC_RESTART_SENSED, 100, skill_lv, 60000);
+	}
 
 	clif_skill_nodamage(src, *target, getSkillId(), skill_lv);
 }

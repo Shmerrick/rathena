@@ -1965,6 +1965,19 @@ uint8 pc_isequip( const map_session_data* sd, int32 n )
 	if (!pc_isItemClass(sd, item))
 		return ITEM_EQUIP_ACK_FAIL;
 
+	// [RESTART] Priest-line cannot equip knuckle weapons
+	if (item->type == IT_WEAPON && item->subtype == W_KNUCKLE) {
+		switch (sd->status.class_) {
+			case JOB_PRIEST:
+			case JOB_HIGH_PRIEST:
+			case JOB_ARCH_BISHOP:
+			case JOB_ARCH_BISHOP_T:
+			case JOB_BABY_PRIEST:
+			case JOB_BABY_ARCH_BISHOP:
+				return ITEM_EQUIP_ACK_FAIL;
+		}
+	}
+
 	return ITEM_EQUIP_ACK_OK;
 }
 
@@ -6801,8 +6814,9 @@ bool pc_steal_item(map_session_data *sd,block_list *bl, uint16 skill_lv)
 		return false;
 	}
 
-	// base skill success chance (percentual)
-	rate = (sd_status->dex - md_status->dex)/2 + skill_lv*6 + 4;
+	// [RESTART] Steal success: .5 + (SkillLevel*.5 - (PlayerDex - TargetDex))
+	// Converted to integer 0-100 range.
+	rate = cap_value((int32)((0.5 + skill_lv * 0.5 - (sd_status->dex - md_status->dex)) * 100), 0, 100);
 	rate += sd->bonus.add_steal_rate;
 
 	if( rate < 1
@@ -9154,6 +9168,16 @@ void pc_skillup(map_session_data *sd,uint16 skill_id)
 		{
 			sd->status.skill[idx].lv++;
 			sd->status.skill_point--;
+
+			// [RESTART] Auto-unlock skills on prerequisite max level
+			{
+				uint16 new_lv = sd->status.skill[idx].lv;
+				if (skill_id == KN_TWOHANDQUICKEN && new_lv >= 10)
+					pc_skill(sd, KN_ONEHAND, 1, ADDSKILL_PERMANENT);
+				else if (skill_id == MC_WEIGHTLIMIT && new_lv >= 10)
+					pc_skill(sd, MC_PUSHCART, 1, ADDSKILL_PERMANENT);
+			}
+
 			if( !skill_get_inf(skill_id) || pc_checkskill_summoner(sd, SUMMONER_POWER_LAND) >= 20 || pc_checkskill_summoner(sd, SUMMONER_POWER_SEA) >= 20 )
 				status_calc_pc(sd,SCO_NONE); // Only recalculate for passive skills.
 			else if( sd->status.skill_point == 0 && pc_is_taekwon_ranker(sd) )
@@ -10869,6 +10893,15 @@ bool pc_jobchange(map_session_data *sd,int32 job, char upper)
 		return false;
 	}
 
+	// [RESTART] Block job change into Taekwon, Ninja, Gunslinger, and Doram class trees
+	switch (b_class & MAPID_FIRSTMASK) {
+		case MAPID_TAEKWON:
+		case MAPID_NINJA:
+		case MAPID_GUNSLINGER:
+		case MAPID_SUMMONER:
+			return false;
+	}
+
 	if( ( b_class&JOBL_FOURTH ) && !( sd->class_&JOBL_FOURTH ) ){
 		// Changing to 4th job
 		sd->change_level_4th = sd->status.job_level;
@@ -10881,6 +10914,20 @@ bool pc_jobchange(map_session_data *sd,int32 job, char upper)
 		// changing from 1st to 2nd job
 		sd->change_level_2nd = sd->status.job_level;
 		pc_setglobalreg( sd, add_str( JOBCHANGE2ND_VAR ), sd->change_level_2nd );
+	}
+
+	// [RESTART] Grant 1 free skill point on first job change (Novice → 1st class)
+	// and another on second job change (1st class → 2nd class).
+	if (!(b_class & (JOBL_2|JOBL_THIRD|JOBL_FOURTH|JOBL_UPPER))
+		&& (b_class & MAPID_BASEMASK) != MAPID_NOVICE
+		&& (previous_class & MAPID_BASEMASK) == MAPID_NOVICE) {
+		// Transitioning from Novice to 1st class
+		sd->status.skill_point += 1;
+		clif_updatestatus(*sd, SP_SKILLPOINT);
+	} else if ((b_class & JOBL_2) && !(previous_class & JOBL_2)) {
+		// Transitioning from 1st class to 2nd class
+		sd->status.skill_point += 1;
+		clif_updatestatus(*sd, SP_SKILLPOINT);
 	}
 
 	if(sd->cloneskill_idx > 0) {

@@ -6342,6 +6342,7 @@ std::shared_ptr<s_skill_unit_group> skill_unitsetting(block_list *src, uint16 sk
 	case SA_VOLCANO:
 	case SA_DELUGE:
 	case SA_VIOLENTGALE:
+	case RESTART_CANYON: // [RESTART] Canyon land skill — interchangeable with other element fields
 	case SC_CHAOSPANIC:
 	case SOA_TOTEM_OF_TUTELARY:
 	{
@@ -6362,6 +6363,9 @@ std::shared_ptr<s_skill_unit_group> skill_unitsetting(block_list *src, uint16 sk
 			}
 			skill_clear_group(src,1);
 		}
+		// [RESTART] Land mastery: Sage receives a 30-min buff allowing free gemstone recast of the same land
+		if (sd && (skill_id == SA_VOLCANO || skill_id == SA_DELUGE || skill_id == SA_VIOLENTGALE || skill_id == RESTART_CANYON))
+			sc_start(src, src, SC_RESTART_LANDMASTERY, 100, (int32)skill_id, 1800000);
 		break;
 	}
 
@@ -6979,6 +6983,7 @@ static int32 skill_unit_onplace(skill_unit *unit, block_list *bl, t_tick tick)
 		case UNT_VOLCANO:
 		case UNT_DELUGE:
 		case UNT_VIOLENTGALE:
+		case UNT_CANYON: // [RESTART] Canyon land skill
 		case UNT_FIRE_INSIGNIA:
 		case UNT_WATER_INSIGNIA:
 		case UNT_WIND_INSIGNIA:
@@ -7570,8 +7575,18 @@ int32 skill_unit_onplace_timer(skill_unit *unit, block_list *bl, t_tick tick)
 				// If no splash range, it only hits the unit that activated the trap
 				if (skill_get_nk(skill_id, NK_NODAMAGE))
 					skill_additional_effect(ss, bl, sg->skill_id, sg->skill_lv, BF_MISC, ATK_DEF, tick);
-				else
-					skill_attack(skill_get_type(sg->skill_id), ss, unit, bl, sg->skill_id, sg->skill_lv, tick, 0);
+				else {
+					int32 attack_flag = 0;
+					// [RESTART] Fire Pillar +300% in Volcano: detect Volcano unit on cell, consume it
+					if (sg->unit_id == UNT_FIREPILLAR_ACTIVE) {
+						skill_unit *volcano_u = map_find_skill_unit_oncell(unit, unit->x, unit->y, SA_VOLCANO, nullptr, 1);
+						if (volcano_u != nullptr) {
+							attack_flag |= 0x10000; // Signal Fire Pillar Volcano boost
+							skill_delunit(volcano_u);
+						}
+					}
+					skill_attack(skill_get_type(sg->skill_id), ss, unit, bl, sg->skill_id, sg->skill_lv, tick, attack_flag);
+				}
 			}
 			else
 				map_foreachinrange(skill_trap_splash, center, splash_range, bl_flag, unit, tick);
@@ -10015,6 +10030,11 @@ bool skill_check_condition_castend( map_session_data& sd, uint16 skill_id, uint1
 	for( i = 0; i < MAX_SKILL_ITEM_REQUIRE; ++i ) {
 		if( !require.itemid[i] )
 			continue;
+		// [RESTART] Land mastery: skip gemstone check if same land skill was recently cast
+		if( itemdb_group.item_exists(IG_GEMSTONE, require.itemid[i]) &&
+		    sc && sc->getSCE(SC_RESTART_LANDMASTERY) && sc->getSCE(SC_RESTART_LANDMASTERY)->val1 == skill_id &&
+		    (skill_id == SA_VOLCANO || skill_id == SA_DELUGE || skill_id == SA_VIOLENTGALE || skill_id == RESTART_CANYON) )
+			continue;
 		index[i] = pc_search_inventory(&sd,require.itemid[i]);
 		if( index[i] < 0 || sd.inventory.u.items_inventory[index[i]].amount < require.amount[i] ) {
 			if( require.itemid[i] == ITEMID_HOLY_WATER )
@@ -10063,6 +10083,24 @@ void skill_consume_requirement(map_session_data *sd, uint16 skill_id, uint16 ski
 	nullpo_retv(sd);
 
 	require = skill_get_requirement(sd,skill_id,skill_lv);
+
+	// [RESTART] 2nd class+ doubles SP (and Zeny for Mammonite) for selected 1st-class skills
+	if (sd->class_ & (JOBL_2|JOBL_THIRD|JOBL_FOURTH)) {
+		switch (skill_id) {
+			case SM_BASH:
+			case SM_MAGNUM:
+			case AC_DOUBLE:
+			case AC_SHOWER:
+			case MC_MAMMONITE:
+				require.sp *= 2;
+				if (skill_id == MC_MAMMONITE)
+					require.zeny *= 2;
+				break;
+			case MC_CARTREVOLUTION:
+				require.sp *= 2;
+				break;
+		}
+	}
 
 	if( type&1 ) {
 		switch( skill_id ) {
@@ -10171,15 +10209,31 @@ void skill_consume_requirement(map_session_data *sd, uint16 skill_id, uint16 ski
 				case SA_VOLCANO:
 					if( sc && sc->getSCE(SC_TROPIC_OPTION) && rnd()%100 < 50 )
 						continue;
+					// [RESTART] Land mastery: free gemstone recast if same land is active
+					if( itemdb_group.item_exists(IG_GEMSTONE, require.itemid[i]) &&
+					    sc && sc->getSCE(SC_RESTART_LANDMASTERY) && sc->getSCE(SC_RESTART_LANDMASTERY)->val1 == skill_id )
+						continue;
 					break;
 				case SA_FROSTWEAPON:
 				case SA_DELUGE:
 					if( sc && sc->getSCE(SC_CHILLY_AIR_OPTION) && rnd()%100 < 50 )
 						continue;
+					if( itemdb_group.item_exists(IG_GEMSTONE, require.itemid[i]) &&
+					    sc && sc->getSCE(SC_RESTART_LANDMASTERY) && sc->getSCE(SC_RESTART_LANDMASTERY)->val1 == skill_id )
+						continue;
 					break;
 				case SA_LIGHTNINGLOADER:
 				case SA_VIOLENTGALE:
 					if( sc && sc->getSCE(SC_WILD_STORM_OPTION) && rnd()%100 < 50 )
+						continue;
+					if( itemdb_group.item_exists(IG_GEMSTONE, require.itemid[i]) &&
+					    sc && sc->getSCE(SC_RESTART_LANDMASTERY) && sc->getSCE(SC_RESTART_LANDMASTERY)->val1 == skill_id )
+						continue;
+					break;
+				case RESTART_CANYON:
+					// [RESTART] Land mastery: free gemstone recast if Canyon is active
+					if( itemdb_group.item_exists(IG_GEMSTONE, require.itemid[i]) &&
+					    sc && sc->getSCE(SC_RESTART_LANDMASTERY) && sc->getSCE(SC_RESTART_LANDMASTERY)->val1 == skill_id )
 						continue;
 					break;
 			}
@@ -11538,6 +11592,7 @@ std::shared_ptr<s_skill_unit_group> skill_locate_element_field(block_list *bl)
 			case MH_POISON_MIST:
 			case MH_LAVA_SLIDE:
 			case SOA_TOTEM_OF_TUTELARY:
+			case RESTART_CANYON: // [RESTART] Canyon land skill
 				return su;
 		}
 	}

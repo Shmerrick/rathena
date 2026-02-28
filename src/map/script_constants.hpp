@@ -10710,6 +10710,7 @@
 	export_constant(UNT_GD_GLORYWOUNDS);
 	export_constant(UNT_GD_SOULCOLD);
 	export_constant(UNT_GD_HAWKEYES);
+	export_constant(UNT_CANYON); // [RESTART] Canyon land skill
 
 	/* battleground info types */
 	export_constant(BG_INFO_ID);

@@ -32,5 +32,6 @@ void SkillSpearStab::castendDamageId(block_list* src, block_list* target, uint16
 }
 
 void SkillSpearStab::calculateSkillRatio(const Damage* wd, const block_list* src, const block_list* target, uint16 skill_lv, int32& base_skillratio, int32 mflag) const {
-	base_skillratio += 20 * skill_lv;
+	// [RESTART] lv1=220% ... lv10=400% (step 20%/level)
+	base_skillratio += 100 + 20 * skill_lv;
 }

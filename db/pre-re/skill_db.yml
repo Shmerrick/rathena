@@ -154,7 +154,7 @@ Body:
     Type: Weapon
   - Id: 3
     Name: SM_TWOHAND
-    Description: Two-Handed Sword Mastery
+    Description: Sword Mastery
     MaxLevel: 10
     Type: Weapon
   - Id: 4
@@ -4698,7 +4698,7 @@ Body:
   - Id: 134
     Name: AS_KATAR
     Description: Katar Mastery
-    MaxLevel: 10
+    MaxLevel: 5
     Type: Weapon
   - Id: 135
     Name: AS_CLOAKING
@@ -7041,7 +7041,7 @@ Body:
   - Id: 259
     Name: MO_IRONHAND
     Description: Iron Fists
-    MaxLevel: 10
+    MaxLevel: 5
     Type: Weapon
   - Id: 260
     Name: MO_SPIRITSRECOVERY
@@ -33853,3 +33853,9 @@ Body:
       IsGuild: true
       IgnoreKagehumi: true
     Duration2: 300000
+  # [RESTART] Custom server skills — ID range 20000+ (offset +10000 from last guild skill)
+  - Id: 20019
+    Name: SR_BLADEMASTERY
+    Description: Blade Mastery
+    MaxLevel: 10
+    Type: Weapon

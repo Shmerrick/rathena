@@ -16,12 +16,8 @@ SkillMagnumBreak::SkillMagnumBreak() : SkillImpl(SM_MAGNUM)
 
 void SkillMagnumBreak::calculateSkillRatio(const Damage *wd, const block_list *src, const block_list *target, uint16 skill_lv, int32 &base_skillratio, int32 mflag) const
 {
-	if (wd->miscflag == 1)
-	 	// Inner 3x3 circle takes 100%+20%*level damage [Playtester]
-		base_skillratio += 20 * skill_lv;
-	else
-		// Outer 5x5 circle takes 100%+10%*level damage [Playtester]
-		base_skillratio += 10 * skill_lv;
+	// [RESTART] lv1=110% ... lv10=200% (step 10%/level, flat — no inner/outer distinction)
+	base_skillratio += 10 * skill_lv;
 }
 
 void SkillMagnumBreak::modifyHitRate(int16 &hit_rate, const block_list *src, const block_list *target, uint16 skill_lv) const

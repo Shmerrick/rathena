@@ -3,6 +3,8 @@
 
 #include "stonecurse.hpp"
 
+#include <common/utils.hpp>
+
 #include "map/clif.hpp"
 #include "map/pc.hpp"
 #include "map/status.hpp"
@@ -30,16 +32,18 @@ void SkillStoneCurse::castendNoDamageId(block_list *src, block_list *target, uin
 	if (sd && sd->sc.getSCE(SC_PETROLOGY_OPTION))
 		brate = sd->sc.getSCE(SC_PETROLOGY_OPTION)->val3;
 
+	// [RESTART] Success formula: 50 + (SkillLevel*50) - (CasterLevel - TargetLevel)
+	// Clamped 0-100. Red gemstone ALWAYS consumed regardless of outcome or level.
+	int32 caster_lv = status_get_lv(src);
+	int32 target_lv = status_get_lv(target);
+	int32 restart_rate = cap_value(50 + (skill_lv * 50) - (caster_lv - target_lv), 0, 100) + brate;
+
 	// Except for players, the skill animation shows even if the status change doesn't start
 	// Players get a skill has failed message instead
-	if (sc_start2(src, target, type, (skill_lv * 4 + 20) + brate, skill_lv, src->id, skill_get_time2(getSkillId(), skill_lv), skill_get_time(getSkillId(), skill_lv)) || sd == nullptr)
+	if (sc_start2(src, target, type, restart_rate, skill_lv, src->id, skill_get_time2(getSkillId(), skill_lv), skill_get_time(getSkillId(), skill_lv)) || sd == nullptr)
 		clif_skill_nodamage(src, *target, getSkillId(), skill_lv);
 	else {
 		clif_skill_fail( *sd, getSkillId() );
-		// Level 6-10 doesn't consume a red gem if it fails [celest]
-		if (skill_lv > 5)
-		{ // not to consume items
-			flag |= SKILL_NOCONSUME_REQ;
-		}
+		// [RESTART] Gemstone is always consumed — removed the old SKILL_NOCONSUME_REQ block
 	}
 }

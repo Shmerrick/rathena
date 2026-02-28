@@ -10,8 +10,8 @@ SkillBash::SkillBash() : WeaponSkillImpl(SM_BASH) {
 }
 
 void SkillBash::calculateSkillRatio(const Damage* wd, const block_list* src, const block_list* target, uint16 skill_lv, int32& base_skillratio, int32 mflag) const {
-	// Base 100% + 30% per level
-	base_skillratio += 30 * skill_lv;
+	// [RESTART] lv1=220% ... lv10=400% (step 20%/level). Formula: 120 + 20*lv on top of base 100.
+	base_skillratio += 120 + 20 * skill_lv;
 }
 
 void SkillBash::modifyHitRate(int16& hit_rate, const block_list* src, const block_list* target, uint16 skill_lv) const {

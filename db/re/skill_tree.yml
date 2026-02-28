@@ -56,13 +56,12 @@ Body:
     Inherit:
       Novice: true
     Tree:
-      - Name: SM_SWORD
+      - Name: SR_BLADEMASTERY
         MaxLevel: 10
       - Name: SM_TWOHAND
         MaxLevel: 10
-        Requires:
-          - Name: SM_SWORD
-            Level: 1
+      - Name: KN_SPEARMASTERY
+        MaxLevel: 10
       - Name: SM_RECOVERY
         MaxLevel: 10
       - Name: SM_BASH
@@ -172,11 +171,7 @@ Body:
     Tree:
       - Name: AL_DP
         MaxLevel: 10
-      - Name: AL_DEMONBANE
-        MaxLevel: 10
-        Requires:
-          - Name: AL_DP
-            Level: 3
+      # [RESTART] AL_DEMONBANE removed from Acolyte tree
       - Name: AL_RUWACH
         MaxLevel: 1
       - Name: AL_PNEUMA
@@ -208,11 +203,8 @@ Body:
             Level: 1
       - Name: AL_HOLYWATER
         MaxLevel: 1
-      - Name: AL_CRUCIS
+      - Name: AL_CRUCIS # [RESTART] AL_DEMONBANE prerequisite removed (skill removed from tree)
         MaxLevel: 10
-        Requires:
-          - Name: AL_DEMONBANE
-            Level: 3
       - Name: AL_ANGELUS
         MaxLevel: 10
         Requires:
@@ -230,6 +222,8 @@ Body:
             Level: 2
       - Name: AL_HOLYLIGHT
         MaxLevel: 1
+      - Name: RESTART_STEADFASTCONVICTION # [RESTART] New RESTART skill added to Acolyte tree
+        MaxLevel: 10
   - Job: Merchant
     Inherit:
       Novice: true
@@ -251,13 +245,8 @@ Body:
         Requires:
           - Name: MC_INCCARRY
             Level: 5
-      - Name: MC_IDENTIFY
-        MaxLevel: 1
-      - Name: MC_VENDING
-        MaxLevel: 10
-        Requires:
-          - Name: MC_PUSHCART
-            Level: 3
+      # [RESTART] MC_IDENTIFY removed from Merchant tree
+      # [RESTART] MC_VENDING removed from Merchant tree
       - Name: MC_MAMMONITE
         MaxLevel: 10
       - Name: MC_CARTREVOLUTION
@@ -266,13 +255,12 @@ Body:
         MaxLevel: 1
       - Name: MC_LOUD
         MaxLevel: 1
-      - Name: ALL_BUYING_STORE
+      - Name: ALL_BUYING_STORE # [RESTART] MC_VENDING prerequisite removed (skill removed from tree)
         MaxLevel: 1
-        Requires:
-          - Name: MC_VENDING
-            Level: 1
       - Name: MC_CARTDECORATE
         MaxLevel: 1
+      - Name: AM_AXEMASTERY
+        MaxLevel: 10
   - Job: Thief
     Inherit:
       Novice: true
@@ -303,13 +291,13 @@ Body:
         MaxLevel: 1
       - Name: TF_THROWSTONE
         MaxLevel: 1
+      - Name: SR_BLADEMASTERY
+        MaxLevel: 10
   - Job: Knight
     Inherit:
       Novice: true
       Swordman: true
     Tree:
-      - Name: KN_SPEARMASTERY
-        MaxLevel: 10
       - Name: KN_PIERCE
         MaxLevel: 10
         Requires:
@@ -409,13 +397,7 @@ Body:
             Level: 1
           - Name: PR_IMPOSITIO
             Level: 3
-      - Name: PR_BENEDICTIO
-        MaxLevel: 5
-        Requires:
-          - Name: PR_GLORIA
-            Level: 3
-          - Name: PR_ASPERSIO
-            Level: 5
+      # [RESTART] PR_BENEDICTIO removed from Priest tree
       - Name: PR_SANCTUARY
         MaxLevel: 10
         Requires:
@@ -839,8 +821,6 @@ Body:
         Requires:
           - Name: KN_RIDING
             Level: 1
-      - Name: KN_SPEARMASTERY
-        MaxLevel: 10
       - Name: AL_CURE
         MaxLevel: 1
         Requires:
@@ -851,16 +831,10 @@ Body:
         Requires:
           - Name: AL_CURE
             Level: 1
-      - Name: AL_DEMONBANE
-        MaxLevel: 10
-        Requires:
-          - Name: AL_DP
-            Level: 3
+      # [RESTART] AL_DEMONBANE removed from Crusader tree
       - Name: AL_HEAL
         MaxLevel: 10
         Requires:
-          - Name: AL_DEMONBANE
-            Level: 5
           - Name: CR_TRUST
             Level: 10
       - Name: CR_TRUST
@@ -920,6 +894,8 @@ Body:
             Level: 10
       - Name: CR_SHRINK
         MaxLevel: 1
+      - Name: RESTART_STEADFASTCONVICTION # [RESTART] New RESTART skill added to Crusader tree
+        MaxLevel: 5
   - Job: Monk
     Inherit:
       Novice: true
@@ -928,7 +904,7 @@ Body:
       - Name: MO_IRONHAND
         MaxLevel: 10
         Requires:
-          - Name: AL_DEMONBANE
+          - Name: RESTART_STEADFASTCONVICTION # [RESTART] replaced AL_DEMONBANE prerequisite
             Level: 10
           - Name: AL_DP
             Level: 10
@@ -1106,15 +1082,22 @@ Body:
         Requires:
           - Name: SA_LIGHTNINGLOADER
             Level: 2
+      - Name: RESTART_CANYON # [RESTART] New Canyon land skill added to Sage tree
+        MaxLevel: 5
+        Requires:
+          - Name: SA_SEISMICWEAPON
+            Level: 2
       - Name: SA_LANDPROTECTOR
         MaxLevel: 5
         Requires:
+          - Name: RESTART_CANYON # [RESTART] Added Canyon lv5 prerequisite
+            Level: 5
           - Name: SA_VOLCANO
-            Level: 3
+            Level: 5
           - Name: SA_DELUGE
-            Level: 3
+            Level: 5
           - Name: SA_VIOLENTGALE
-            Level: 3
+            Level: 5
       - Name: SA_DISPELL
         MaxLevel: 5
         Requires:
@@ -1144,8 +1127,6 @@ Body:
       Novice: true
       Thief: true
     Tree:
-      - Name: SM_SWORD
-        MaxLevel: 10
       - Name: AC_VULTURE
         MaxLevel: 10
       - Name: AC_DOUBLE
@@ -1249,8 +1230,6 @@ Body:
       Novice: true
       Merchant: true
     Tree:
-      - Name: AM_AXEMASTERY
-        MaxLevel: 10
       - Name: AM_LEARNINGPOTION
         MaxLevel: 10
       - Name: AM_PHARMACY

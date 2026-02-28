@@ -11,7 +11,8 @@ SkillPierce::SkillPierce() : WeaponSkillImpl(KN_PIERCE) {
 void SkillPierce::calculateSkillRatio(const Damage* wd, const block_list* src, const block_list* target, uint16 skill_lv, int32& base_skillratio, int32 mflag) const {
 	const status_change* sc = status_get_sc(src);
 
-	base_skillratio += 10 * skill_lv;
+	// [RESTART] lv1=220% ... lv10=400% (step 20%/level)
+	base_skillratio += 100 + 20 * skill_lv;
 
 	if (sc && sc->getSCE(SC_CHARGINGPIERCE_COUNT) && sc->getSCE(SC_CHARGINGPIERCE_COUNT)->val1 >= 10)
 		base_skillratio *= 2;

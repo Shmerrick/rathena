@@ -551,6 +551,15 @@ int64 battle_attr_fix(block_list *src, block_list *target, int64 damage,int32 at
 					damage += (int64)((damage*sc->getSCE(SC_DELUGE)->val3) / 100);
 #endif
 				break;
+			case ELE_EARTH:
+				// [RESTART] Canyon land: boost earth element damage
+				if (sc->getSCE(SC_RESTART_CANYON))
+#ifdef RENEWAL
+					ratio += sc->getSCE(SC_RESTART_CANYON)->val3;
+#else
+					damage += (int64)((damage*sc->getSCE(SC_RESTART_CANYON)->val3) / 100);
+#endif
+				break;
 			case ELE_GHOST:
 				if (sc->getSCE(SC_TELEKINESIS_INTENSE)) {
 					// At least for SC_TELEKINESIS_INTENSE:
@@ -2270,7 +2279,7 @@ int64 battle_addmastery(map_session_data *sd,block_list *target,int64 dmg,int32 
 {
 	int64 damage;
 	status_data* status = status_get_status_data(*target);
-	int32 weapon, skill;
+	int32 skill;
 
 #ifdef RENEWAL
 	damage = 0;
@@ -2284,6 +2293,10 @@ int64 battle_addmastery(map_session_data *sd,block_list *target,int64 dmg,int32 
 		target->type == BL_MOB && //This bonus doesn't work against players.
 		(battle_check_undead(status->race,status->def_ele) || status->race == RC_DEMON) )
 		damage += static_cast<decltype(damage)>(skill * (sd->status.base_level / 20.0 + 3.0));
+	// [RESTART] Steadfast Conviction: +5 mastery ATK per level vs demon/undead
+	if ((skill = pc_checkskill(sd, RESTART_STEADFASTCONVICTION)) > 0 &&
+		(battle_check_undead(status->race, status->def_ele) || status->race == RC_DEMON))
+		damage += skill * 5;
 	if( (skill = pc_checkskill(sd, RA_RANGERMAIN)) > 0 && (status->race == RC_BRUTE || status->race == RC_PLAYER_DORAM || status->race == RC_PLANT || status->race == RC_FISH) )
 		damage += (skill * 5);
 	if( (skill = pc_checkskill(sd,NC_RESEARCHFE)) > 0 && (status->def_ele == ELE_FIRE || status->def_ele == ELE_EARTH) )
@@ -2315,78 +2328,8 @@ int64 battle_addmastery(map_session_data *sd,block_list *target,int64 dmg,int32 
 			damage += damage * 30 / 100;
 	}
 
-	if(type == 0)
-		weapon = sd->weapontype1;
-	else
-		weapon = sd->weapontype2;
-
-	switch(weapon) {
-		case W_1HSWORD:
-#ifdef RENEWAL
-			if((skill = pc_checkskill(sd,AM_AXEMASTERY)) > 0)
-				damage += (skill * 3);
-#endif
-		case W_DAGGER:
-			if((skill = pc_checkskill(sd,SM_SWORD)) > 0)
-				damage += (skill * 4);
-			if((skill = pc_checkskill(sd,GN_TRAINING_SWORD)) > 0)
-				damage += skill * 10;
-			break;
-		case W_2HSWORD:
-			if((skill = pc_checkskill(sd,SM_TWOHAND)) > 0)
-				damage += (skill * 4);
-			break;
-		case W_1HSPEAR:
-		case W_2HSPEAR:
-			if((skill = pc_checkskill(sd,KN_SPEARMASTERY)) > 0) {
-				if(!pc_isriding(sd) && !pc_isridingdragon(sd))
-					damage += (skill * 4);
-				else
-					damage += (skill * 5);
-				// Increase damage by level of KN_SPEARMASTERY * 10
-				if(pc_checkskill(sd,RK_DRAGONTRAINING) > 0)
-					damage += (skill * 10);
-			}
-			break;
-		case W_1HAXE:
-		case W_2HAXE:
-			if((skill = pc_checkskill(sd,AM_AXEMASTERY)) > 0)
-				damage += (skill * 3);
-			if((skill = pc_checkskill(sd,NC_TRAININGAXE)) > 0)
-				damage += (skill * 5);
-			break;
-		case W_MACE:
-		case W_2HMACE:
-			if((skill = pc_checkskill(sd,PR_MACEMASTERY)) > 0)
-				damage += (skill * 3);
-			if((skill = pc_checkskill(sd,NC_TRAININGAXE)) > 0)
-				damage += (skill * 4);
-			break;
-		case W_FIST:
-			if((skill = pc_checkskill(sd,TK_RUN)) > 0)
-				damage += (skill * 10);
-			[[fallthrough]];
-		case W_KNUCKLE:
-			if((skill = pc_checkskill(sd,MO_IRONHAND)) > 0)
-				damage += (skill * 3);
-			break;
-		case W_MUSICAL:
-			if((skill = pc_checkskill(sd,BA_MUSICALLESSON)) > 0)
-				damage += (skill * 3);
-			break;
-		case W_WHIP:
-			if((skill = pc_checkskill(sd,DC_DANCINGLESSON)) > 0)
-				damage += (skill * 3);
-			break;
-		case W_BOOK:
-			if((skill = pc_checkskill(sd,SA_ADVANCEDBOOK)) > 0)
-				damage += (skill * 3);
-			break;
-		case W_KATAR:
-			if((skill = pc_checkskill(sd,AS_KATAR)) > 0)
-				damage += (skill * 3);
-			break;
-	}
+	// [RESTART] Weapon-type mastery bonuses moved to status_calc_pc_() as eatk (shown in
+	// ATK stat, scaled by % multipliers). Only target-dependent bonuses remain here.
 
 	return damage;
 }
@@ -3208,7 +3151,7 @@ static std::bitset<NK_MAX> battle_skill_get_damage_properties(uint16 skill_id, i
  *	Initial refactoring by Baalberith
  *	Refined and optimized by helvetica
  */
-static bool is_attack_hitting(struct Damage* wd, block_list *src, block_list *target, int32 skill_id, int32 skill_lv, bool first_call)
+static bool is_attack_hitting(struct Damage* wd, block_list *src, block_list *target, int32 skill_id, int32 skill_lv, bool first_call, bool pre_perfect_hit = false)
 {
 	status_data* sstatus = status_get_status_data(*src);
 	status_data* tstatus = status_get_status_data(*target);
@@ -3222,7 +3165,9 @@ static bool is_attack_hitting(struct Damage* wd, block_list *src, block_list *ta
 		return (wd->dmg_lv != ATK_FLEE);
 	if (is_attack_critical(wd, src, target, skill_id, skill_lv, false))
 		return true;
-	else if(sd && sd->bonus.perfect_hit > 0 && rnd()%100 < sd->bonus.perfect_hit)
+	// [RESTART] Use pre-rolled result when supplied (avoids double rnd() when
+	// perfect dodge was already suppressed by the same roll above).
+	else if(pre_perfect_hit || (sd && sd->bonus.perfect_hit > 0 && rnd()%100 < sd->bonus.perfect_hit))
 		return true;
 	else if (sc && sc->getSCE(SC_FUSION))
 		return true;
@@ -3230,7 +3175,7 @@ static bool is_attack_hitting(struct Damage* wd, block_list *src, block_list *ta
 		return true;
 	else if (skill_id == CR_SHIELDBOOMERANG && sc && sc->getSCE(SC_SPIRIT) && sc->getSCE(SC_SPIRIT)->val2 == SL_CRUSADER )
 		return true;
-	else if (tsc && tsc->opt1 && tsc->opt1 != OPT1_STONEWAIT && tsc->opt1 != OPT1_BURNING)
+	else if (tsc && tsc->opt1 && tsc->opt1 != OPT1_STONEWAIT && tsc->opt1 != OPT1_BURNING && tsc->opt1 != OPT1_STUN) // [RESTART] Stun no longer auto-hits; flee -100 instead
 		return true;
 	else if (nk[NK_IGNOREFLEE])
 		return true;
@@ -4648,6 +4593,27 @@ static int32 battle_calc_attack_skill_ratio(struct Damage* wd, block_list *src,b
 				wd->div_ = 3;
 			break;
 	}
+
+	// [RESTART] Divine Fury (SC_RESTART_DIVINE_FURY): +10% vs demon/undead, +5% vs all others
+	if (sc && sc->getSCE(SC_RESTART_DIVINE_FURY)) {
+		bool is_demon_undead = (battle_check_undead(tstatus->race, tstatus->def_ele) || tstatus->race == RC_DEMON);
+		skillratio += is_demon_undead ? 10 : 5;
+	}
+
+	// [RESTART] 2nd class bonus: selected 1st-class skills deal 2x damage when used by 2nd class+
+	if (sd && (sd->class_ & (JOBL_2|JOBL_THIRD|JOBL_FOURTH))) {
+		switch (skill_id) {
+			case SM_BASH:
+			case SM_MAGNUM:
+			case AC_DOUBLE:
+			case AC_SHOWER:
+			case MC_MAMMONITE:
+			case MC_CARTREVOLUTION:
+				skillratio *= 2;
+				break;
+		}
+	}
+
 	return skillratio;
 }
 
@@ -5018,6 +4984,12 @@ static void battle_calc_defense_reduction( Damage* wd, block_list* src, block_li
 	if (battle_config.weapon_defense_type) {
 		vit_def += def1*battle_config.weapon_defense_type;
 		def1 = 0;
+	}
+
+	// [RESTART] Sleep: target's hard physical DEF and VIT DEF are treated as zero
+	if (tsc && tsc->getSCE(SC_SLEEP)) {
+		def1 = 0;
+		vit_def = 0;
 	}
 
 #ifdef RENEWAL
@@ -5744,8 +5716,12 @@ static struct Damage battle_calc_weapon_attack(block_list *src, block_list *targ
 	sd = BL_CAST(BL_PC, src);
 	tsd = BL_CAST(BL_PC, target);
 
-	//Check for Lucky Dodge
-	if ((!skill_id || skill_id == PA_SACRIFICE) && tstatus->flee2 && rnd()%1000 < tstatus->flee2) {
+	// [RESTART] Perfect Hit supersedes Perfect Dodge: roll perfect hit first.
+	// The result is passed to is_attack_hitting() to avoid a second rnd() roll.
+	bool restart_ph_fired = (sd && sd->bonus.perfect_hit > 0 && rnd()%100 < sd->bonus.perfect_hit);
+
+	//Check for Lucky Dodge — suppressed if perfect hit already fired
+	if ((!skill_id || skill_id == PA_SACRIFICE) && tstatus->flee2 && !restart_ph_fired && rnd()%1000 < tstatus->flee2) {
 		wd.type = DMG_LUCY_DODGE;
 		wd.dmg_lv = ATK_LUCKY;
 		if(wd.div_ < 0)
@@ -5770,8 +5746,8 @@ static struct Damage battle_calc_weapon_attack(block_list *src, block_list *targ
 
 	std::bitset<NK_MAX> nk = battle_skill_get_damage_properties(skill_id, wd.miscflag);
 
-	// check if we're landing a hit
-	if(!is_attack_hitting(&wd, src, target, skill_id, skill_lv, true))
+	// check if we're landing a hit — pass pre-rolled perfect hit result
+	if(!is_attack_hitting(&wd, src, target, skill_id, skill_lv, true, restart_ph_fired))
 		wd.dmg_lv = ATK_FLEE;
 	else if(!(infdef = is_infinite_defense(target, wd.flag))) { //no need for math against plants
 
@@ -6165,6 +6141,9 @@ struct Damage battle_calc_magic_attack(block_list *src,block_list *target,uint16
 		nk = skill->nk;
 
 	flag.imdef = nk[NK_IGNOREDEFENSE] ? 1 : 0;
+	// [RESTART] Napalm Beat always ignores target MDEF
+	if (skill_id == MG_NAPALMBEAT)
+		flag.imdef = 1;
 
 	sd = BL_CAST(BL_PC, src);
 	tsd = BL_CAST(BL_PC, target);
@@ -6495,6 +6474,12 @@ struct Damage battle_calc_magic_attack(block_list *src,block_list *target,uint16
 			int32 mdef2 = tstatus->mdef2;
 			i = 0;	// Bonus ratio that ignores Mdef
 
+			// [RESTART] Sleep: target's hard MDEF and soft MDEF are treated as zero
+			if (tsc && tsc->getSCE(SC_SLEEP)) {
+				mdef = 0;
+				mdef2 = 0;
+			}
+
 			if (sc != nullptr && sc->getSCE(SC_EXPIATIO))
 				i += 5 * sc->getSCE(SC_EXPIATIO)->val1;
 
@@ -6696,6 +6681,12 @@ struct Damage battle_calc_magic_attack(block_list *src,block_list *target,uint16
 		MATK_ADDRATE(skill_damage);
 
 	battle_absorb_damage(target, &ad);
+
+	// [RESTART] Sleep: 200% magic damage; display as blue critical
+	if (tsc && tsc->getSCE(SC_SLEEP) && ad.damage > 0) {
+		ad.damage *= 2;
+		ad.isspdamage = true;
+	}
 
 	//battle_do_reflect(BF_MAGIC,&ad, src, target, skill_id, skill_lv); //WIP [lighta] Magic skill has own handler at skill_attack
 	return ad;
@@ -7819,6 +7810,14 @@ enum damage_lv battle_weapon_attack(block_list* src, block_list* target, t_tick 
 		}
 	}
 
+	// [RESTART] Sleep: 200% physical damage; display as blue critical
+	if (tsc && tsc->getSCE(SC_SLEEP) && wd.dmg_lv > ATK_BLOCK) {
+		if (wd.damage > 0) wd.damage *= 2;
+		if (wd.damage2 > 0) wd.damage2 *= 2;
+		damage = wd.damage + wd.damage2;
+		wd.isspdamage = true;
+	}
+
 	clif_damage(*src, *target, tick, wd.amotion, wd.dmotion, wd.damage, wd.div_, wd.type, wd.damage2, wd.isspdamage);
 
 	if (sd && sd->bonus.splash_range > 0 && damage > 0)
@@ -7948,6 +7947,24 @@ enum damage_lv battle_weapon_attack(block_list* src, block_list* target, t_tick 
 			}
 		}
 	}
+	// [RESTART] Divine Fury auto-cast: 5% chance (100% vs demon/undead) to proc Signum Crucis on hit
+	// 30s cooldown implemented via SC_RESTART_DIVINE_FURY presence
+	if (sd && (wd.flag & BF_WEAPON) && !status_isdead(*target)) {
+		int32 crucis_lv = pc_checkskill(sd, AL_CRUCIS);
+		if (crucis_lv > 0 && !(sc && sc->getSCE(SC_RESTART_DIVINE_FURY))) {
+			status_data* tst = status_get_status_data(*target);
+			int32 autocast_rate = (battle_check_undead(tst->race, tst->def_ele) || tst->race == RC_DEMON) ? 100 : 5;
+			if (rnd() % 100 < autocast_rate) {
+				// Apply Signum Crucis debuff to target (no SP cost)
+				bool full_effect = (battle_check_undead(tst->race, tst->def_ele) || tst->race == RC_DEMON);
+				int32 def_reduction = full_effect ? (10 + 4 * crucis_lv) : (5 + 2 * crucis_lv);
+				sc_start2(src, target, SC_SIGNUMCRUCIS, 100, crucis_lv, def_reduction, skill_get_time(AL_CRUCIS, crucis_lv));
+				// Grant Divine Fury buff (also serves as 30s cooldown)
+				sc_start(src, src, SC_RESTART_DIVINE_FURY, 100, crucis_lv, 30000);
+			}
+		}
+	}
+
 	if (sd) {
 		uint16 r_skill = 0, sk_idx = 0;
 		if( wd.flag&BF_WEAPON && sc && sc->getSCE(SC__AUTOSHADOWSPELL) && rnd()%100 < sc->getSCE(SC__AUTOSHADOWSPELL)->val3 &&

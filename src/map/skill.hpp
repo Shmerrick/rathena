@@ -2603,7 +2603,14 @@ enum e_skill {
 	ABR_DUAL_CANNON_FIRE,
 	ABR_NET_REPAIR,
 	ABR_NET_SUPPORT,
-	ABR_INFINITY_BUSTER
+	ABR_INFINITY_BUSTER,
+
+	// [RESTART] Custom server skills
+	// Base offset: +10000 from last guild skill (GD_EMERGENCY_MOVE = 10019).
+	SR_BLADEMASTERY = 20019,
+	RESTART_STEADFASTCONVICTION = 20020, // Passive: mastery ATK vs demon/undead; -% dmg taken from them
+	RESTART_CANYON = 20021,              // Land skill: earth element dmg boost + DEF/MDEF buff in area
+	// Next available RESTART skill ID: 20022
 };
 
 /// The client view ids for land skills.
@@ -2803,6 +2810,9 @@ enum e_skill_unit_id : uint16 {
 	UNT_GD_GLORYWOUNDS = 0xc2,
 	UNT_GD_SOULCOLD = 0xc3,
 	UNT_GD_HAWKEYES = 0xc4,
+
+	// [RESTART] Custom land skills
+	UNT_CANYON = 0xc5,
 
 	UNT_MAX = 0x190
 };

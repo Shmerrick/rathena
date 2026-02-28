@@ -154,7 +154,7 @@ Body:
     Type: Weapon
   - Id: 3
     Name: SM_TWOHAND
-    Description: Two-Handed Sword Mastery
+    Description: Sword Mastery
     MaxLevel: 10
     Type: Weapon
   - Id: 4
@@ -177,27 +177,7 @@ Body:
         Reproduce: true
     Duration2: 4500
     Requires:
-      SpCost:
-        - Level: 1
-          Amount: 8
-        - Level: 2
-          Amount: 8
-        - Level: 3
-          Amount: 8
-        - Level: 4
-          Amount: 8
-        - Level: 5
-          Amount: 8
-        - Level: 6
-          Amount: 15
-        - Level: 7
-          Amount: 15
-        - Level: 8
-          Amount: 15
-        - Level: 9
-          Amount: 15
-        - Level: 10
-          Amount: 15
+      SpCost: 15 # [RESTART] Flat 15 SP all levels (was 8/8/8/8/8/15/15/15/15/15)
       Weapon:
         Fist: true
         Dagger: true
@@ -313,31 +293,11 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1:
-      - Level: 1
-        Time: 10000
-      - Level: 2
-        Time: 13000
-      - Level: 3
-        Time: 16000
-      - Level: 4
-        Time: 19000
-      - Level: 5
-        Time: 22000
-      - Level: 6
-        Time: 25000
-      - Level: 7
-        Time: 28000
-      - Level: 8
-        Time: 31000
-      - Level: 9
-        Time: 34000
-      - Level: 10
-        Time: 37000
+    Duration1: 60000 # [RESTART] Flat 60s all levels (was 10000-37000 scaling)
     Duration2: 10000
     Cooldown: 10000
     Requires:
-      SpCost: 10
+      SpCost: 30 # [RESTART] 30 SP (was 10)
     Status: Endure
   - Id: 9
     Name: MG_SRECOVERY
@@ -375,37 +335,37 @@ Body:
     Range: 9
     Hit: Single
     HitCount: 1
-    Element: Ghost
+    Element: Neutral # [RESTART] Changed from Ghost to Neutral
     SplashArea: 1
     CopyFlags:
       Skill:
         Plagiarism: true
         Reproduce: true
-    CastTime: 400
-    AfterCastActDelay: 500
+    CastTime: # [RESTART] Variable cast time: 200+(lv*300)ms
+      - Level: 1
+        Time: 500
+      - Level: 2
+        Time: 800
+      - Level: 3
+        Time: 1100
+      - Level: 4
+        Time: 1400
+      - Level: 5
+        Time: 1700
+      - Level: 6
+        Time: 2000
+      - Level: 7
+        Time: 2300
+      - Level: 8
+        Time: 2600
+      - Level: 9
+        Time: 2900
+      - Level: 10
+        Time: 3200
+    AfterCastActDelay: 1400 # [RESTART] 1400ms (was 500)
     FixedCastTime: 100
     Requires:
-      SpCost:
-        - Level: 1
-          Amount: 9
-        - Level: 2
-          Amount: 9
-        - Level: 3
-          Amount: 9
-        - Level: 4
-          Amount: 12
-        - Level: 5
-          Amount: 12
-        - Level: 6
-          Amount: 12
-        - Level: 7
-          Amount: 15
-        - Level: 8
-          Amount: 15
-        - Level: 9
-          Amount: 15
-        - Level: 10
-          Amount: 18
+      SpCost: 60 # [RESTART] Flat 60 SP all levels (was 9/9/9/12/12/12/15/15/15/18)
   - Id: 12
     Name: MG_SAFETYWALL
     Description: Safety Wall
@@ -523,25 +483,25 @@ Body:
       IsAutoShadowSpell: true
     Range: 9
     Hit: Multi_Hit
-    HitCount:
+    HitCount: # [RESTART] lv1-3=1 hit, lv4-5=2, lv6-7=3, lv8-9=4, lv10=5
       - Level: 1
         Count: 1
       - Level: 2
         Count: 1
       - Level: 3
-        Count: 2
+        Count: 1
       - Level: 4
         Count: 2
       - Level: 5
-        Count: 3
+        Count: 2
       - Level: 6
         Count: 3
       - Level: 7
-        Count: 4
+        Count: 3
       - Level: 8
         Count: 4
       - Level: 9
-        Count: 5
+        Count: 4
       - Level: 10
         Count: 5
     Element: Ghost
@@ -553,27 +513,27 @@ Body:
     AfterCastActDelay: 1400
     FixedCastTime: 100
     Requires:
-      SpCost:
+      SpCost: # [RESTART] 20/20/30/30/40/40/50/50/60/60 (was 18/14/24/20/30/26/36/32/42/38)
         - Level: 1
-          Amount: 18
-        - Level: 2
-          Amount: 14
-        - Level: 3
-          Amount: 24
-        - Level: 4
           Amount: 20
-        - Level: 5
+        - Level: 2
+          Amount: 20
+        - Level: 3
           Amount: 30
+        - Level: 4
+          Amount: 30
+        - Level: 5
+          Amount: 40
         - Level: 6
-          Amount: 26
+          Amount: 40
         - Level: 7
-          Amount: 36
+          Amount: 50
         - Level: 8
-          Amount: 32
+          Amount: 50
         - Level: 9
-          Amount: 42
+          Amount: 60
         - Level: 10
-          Amount: 38
+          Amount: 60
   - Id: 14
     Name: MG_COLDBOLT
     Description: Cold Bolt
@@ -752,32 +712,12 @@ Body:
     Hit: Single
     HitCount: 1
     Element: Earth
-    CastTime: 800
+    CastTime: 1000 # [RESTART] 1000ms VCT all levels (was 800)
     Duration1: 5000
     Duration2: 17000
     FixedCastTime: 200
     Requires:
-      SpCost:
-        - Level: 1
-          Amount: 25
-        - Level: 2
-          Amount: 24
-        - Level: 3
-          Amount: 23
-        - Level: 4
-          Amount: 22
-        - Level: 5
-          Amount: 21
-        - Level: 6
-          Amount: 20
-        - Level: 7
-          Amount: 19
-        - Level: 8
-          Amount: 18
-        - Level: 9
-          Amount: 17
-        - Level: 10
-          Amount: 16
+      SpCost: 30 # [RESTART] Flat 30 SP all levels (was 25-16 descending)
       ItemCost:
         - Item: Red_Gemstone
           Amount: 1
@@ -824,11 +764,31 @@ Body:
       Skill:
         Plagiarism: true
         Reproduce: true
-    CastTime: 800
-    AfterCastActDelay: 700
+    CastTime: # [RESTART] Variable cast time: 200+(lv*300)ms (same formula as NapalmBeat)
+      - Level: 1
+        Time: 500
+      - Level: 2
+        Time: 800
+      - Level: 3
+        Time: 1100
+      - Level: 4
+        Time: 1400
+      - Level: 5
+        Time: 1700
+      - Level: 6
+        Time: 2000
+      - Level: 7
+        Time: 2300
+      - Level: 8
+        Time: 2600
+      - Level: 9
+        Time: 2900
+      - Level: 10
+        Time: 3200
+    AfterCastActDelay: 1400 # [RESTART] 1400ms (was 700)
     FixedCastTime: 200
     Requires:
-      SpCost: 25
+      SpCost: 60 # [RESTART] Flat 60 SP all levels (was 25)
   - Id: 18
     Name: MG_FIREWALL
     Description: Fire Wall
@@ -1738,7 +1698,7 @@ Body:
         Plagiarism: true
         Reproduce: true
     Requires:
-      SpCost: 5
+      SpCost: 15 # [RESTART] Flat 15 SP (was 5)
       ZenyCost:
         - Level: 1
           Amount: 100
@@ -1843,7 +1803,7 @@ Body:
     AfterCastActDelay: 100
     Duration1: 100
     Requires:
-      SpCost: 12
+      SpCost: 15 # [RESTART] Flat 15 SP (was 12)
       Weapon:
         Bow: true
       Ammo:
@@ -1865,27 +1825,7 @@ Body:
     Hit: Single
     HitCount: 1
     Element: Weapon
-    SplashArea:
-      - Level: 1
-        Area: 1
-      - Level: 2
-        Area: 1
-      - Level: 3
-        Area: 1
-      - Level: 4
-        Area: 1
-      - Level: 5
-        Area: 1
-      - Level: 6
-        Area: 2
-      - Level: 7
-        Area: 2
-      - Level: 8
-        Area: 2
-      - Level: 9
-        Area: 2
-      - Level: 10
-        Area: 2
+    SplashArea: 2 # [RESTART] 5x5 AoE all levels (was 1-5=3x3, 6-10=5x5)
     Knockback: 2
     CopyFlags:
       Skill:
@@ -1894,7 +1834,7 @@ Body:
     AfterCastActDelay: 100
     Duration1: 100
     Requires:
-      SpCost: 15
+      SpCost: 30 # [RESTART] Flat 30 SP (was 15)
       Weapon:
         Bow: true
       Ammo:
@@ -2066,7 +2006,7 @@ Body:
     HitCount: 3
     Element: Weapon
     Requires:
-      SpCost: 7
+      SpCost: 30 # [RESTART] Flat 30 SP (was 7)
       Weapon:
         1hSpear: true
         2hSpear: true
@@ -2090,7 +2030,7 @@ Body:
     Cooldown: 1000
     FixedCastTime: 350
     Requires:
-      SpCost: 24
+      SpCost: 30 # [RESTART] Flat 30 SP (was 24)
       Weapon:
         1hSpear: true
         2hSpear: true
@@ -2112,7 +2052,7 @@ Body:
     Element: Weapon
     Knockback: 6
     Requires:
-      SpCost: 9
+      SpCost: 30 # [RESTART] Flat 30 SP (was 9)
       Weapon:
         1hSpear: true
         2hSpear: true
@@ -2138,7 +2078,7 @@ Body:
     Element: Weapon
     AfterCastActDelay: 1000
     Requires:
-      SpCost: 10
+      SpCost: 15 # [RESTART] Flat 15 SP (was 10)
       Weapon:
         1hSpear: true
         2hSpear: true
@@ -2291,27 +2231,7 @@ Body:
     Cooldown: 1000
     FixedCastTime: 350
     Requires:
-      SpCost:
-        - Level: 1
-          Amount: 13
-        - Level: 2
-          Amount: 14
-        - Level: 3
-          Amount: 15
-        - Level: 4
-          Amount: 16
-        - Level: 5
-          Amount: 17
-        - Level: 6
-          Amount: 18
-        - Level: 7
-          Amount: 19
-        - Level: 8
-          Amount: 20
-        - Level: 9
-          Amount: 21
-        - Level: 10
-          Amount: 22
+      SpCost: 60 # [RESTART] Flat 60 SP (was 13-22 scaling)
     CastCancel: false
   - Id: 63
     Name: KN_RIDING
@@ -3399,7 +3319,7 @@ Body:
   - Id: 86
     Name: WZ_WATERBALL
     Description: Water Ball
-    MaxLevel: 5
+    MaxLevel: 10 # [RESTART] Increased from 5 to 10
     Type: Magic
     TargetType: Attack
     Flags:
@@ -3412,7 +3332,7 @@ Body:
       Skill:
         Plagiarism: true
         Reproduce: true
-    CastTime:
+    CastTime: # [RESTART] Levels 6-10 extrapolated at +640ms per level
       - Level: 1
         Time: 640
       - Level: 2
@@ -3423,8 +3343,18 @@ Body:
         Time: 2560
       - Level: 5
         Time: 3200
+      - Level: 6
+        Time: 3840
+      - Level: 7
+        Time: 4480
+      - Level: 8
+        Time: 5120
+      - Level: 9
+        Time: 5760
+      - Level: 10
+        Time: 6400
     Duration1: 10000
-    FixedCastTime:
+    FixedCastTime: # [RESTART] Levels 6-10 extrapolated at +160ms per level
       - Level: 1
         Time: 160
       - Level: 2
@@ -3435,6 +3365,16 @@ Body:
         Time: 640
       - Level: 5
         Time: 800
+      - Level: 6
+        Time: 960
+      - Level: 7
+        Time: 1120
+      - Level: 8
+        Time: 1280
+      - Level: 9
+        Time: 1440
+      - Level: 10
+        Time: 1600
     Requires:
       SpCost:
         - Level: 1
@@ -4782,7 +4722,7 @@ Body:
   - Id: 134
     Name: AS_KATAR
     Description: Katar Mastery
-    MaxLevel: 10
+    MaxLevel: 5
     Type: Weapon
   - Id: 135
     Name: AS_CLOAKING
@@ -5255,7 +5195,7 @@ Body:
     Element: Earth
     Duration2: 18000
     Requires:
-      SpCost: 9
+      SpCost: 15 # [RESTART] 15 SP (was 9)
     Status: Blind
   - Id: 150
     Name: TF_BACKSLIDING
@@ -5334,7 +5274,7 @@ Body:
     SplashArea: 1
     Knockback: 2
     Requires:
-      SpCost: 12
+      SpCost: 30 # [RESTART] 30 SP (was 12)
       State: Cart
   - Id: 154
     Name: MC_CHANGECART
@@ -7033,27 +6973,7 @@ Body:
         Reproduce: true
     Duration2: 18000
     Requires:
-      SpCost:
-        - Level: 1
-          Amount: 11
-        - Level: 2
-          Amount: 12
-        - Level: 3
-          Amount: 13
-        - Level: 4
-          Amount: 14
-        - Level: 5
-          Amount: 15
-        - Level: 6
-          Amount: 16
-        - Level: 7
-          Amount: 17
-        - Level: 8
-          Amount: 18
-        - Level: 9
-          Amount: 19
-        - Level: 10
-          Amount: 20
+      SpCost: 15 # [RESTART] Flat 15 SP (was 11-20 scaling)
     Status: Blind
   - Id: 254
     Name: CR_GRANDCROSS
@@ -7249,7 +7169,7 @@ Body:
   - Id: 259
     Name: MO_IRONHAND
     Description: Iron Fists
-    MaxLevel: 10
+    MaxLevel: 5
     Type: Weapon
   - Id: 260
     Name: MO_SPIRITSRECOVERY
@@ -7742,7 +7662,7 @@ Body:
     Requires:
       SpCost: 40
       ItemCost:
-        - Item: Scarlet_Pts
+        - Item: Red_Gemstone # [RESTART] changed from Scarlet_Pts
           Amount: 1
     Status: FireWeapon
   - Id: 281
@@ -7776,7 +7696,7 @@ Body:
     Requires:
       SpCost: 40
       ItemCost:
-        - Item: Indigo_Pts
+        - Item: Red_Gemstone # [RESTART] changed from Indigo_Pts
           Amount: 1
     Status: WaterWeapon
   - Id: 282
@@ -7810,7 +7730,7 @@ Body:
     Requires:
       SpCost: 40
       ItemCost:
-        - Item: Yellow_Wish_Pts
+        - Item: Red_Gemstone # [RESTART] changed from Yellow_Wish_Pts
           Amount: 1
     Status: WindWeapon
   - Id: 283
@@ -7844,7 +7764,7 @@ Body:
     Requires:
       SpCost: 40
       ItemCost:
-        - Item: Lime_Green_Pts
+        - Item: Red_Gemstone # [RESTART] changed from Lime_Green_Pts
           Amount: 1
     Status: EarthWeapon
   - Id: 284
@@ -7892,11 +7812,11 @@ Body:
         - Level: 5
           Amount: 40
       ItemCost:
-        - Item: Blue_Gemstone
+        - Item: Yellow_Gemstone # [RESTART] changed from Blue_Gemstone
           Amount: 1
     Unit:
       Id: Volcano
-      Layout: 3
+      Layout: 4 # [RESTART] 9x9 area (was 3 = 7x7)
       Interval: -1
       Flag:
         PathCheck: true
@@ -7942,11 +7862,11 @@ Body:
         - Level: 5
           Amount: 40
       ItemCost:
-        - Item: Blue_Gemstone
+        - Item: Yellow_Gemstone # [RESTART] changed from Blue_Gemstone
           Amount: 1
     Unit:
       Id: Deluge
-      Layout: 3
+      Layout: 4 # [RESTART] 9x9 area (was 3 = 7x7)
       Interval: -1
       Flag:
         PathCheck: true
@@ -7992,11 +7912,11 @@ Body:
         - Level: 5
           Amount: 40
       ItemCost:
-        - Item: Blue_Gemstone
+        - Item: Yellow_Gemstone # [RESTART] changed from Blue_Gemstone
           Amount: 1
     Unit:
       Id: Violentgale
-      Layout: 3
+      Layout: 4 # [RESTART] 9x9 area (was 3 = 7x7)
       Interval: -1
       Flag:
         PathCheck: true
@@ -50709,3 +50629,35 @@ Body:
     Duration1: 10000
     Cooldown: 60000
     Status: Emergency_Move
+  # [RESTART] Custom server skills — ID range 20000+ (offset +10000 from last guild skill)
+  - Id: 20019
+    Name: SR_BLADEMASTERY
+    Description: Blade Mastery
+    MaxLevel: 10
+    Type: Weapon
+  - Id: 20020
+    Name: RESTART_STEADFASTCONVICTION
+    Description: Steadfast Conviction
+    MaxLevel: 10
+    Type: Passive
+  - Id: 20021
+    Name: RESTART_CANYON
+    Description: Canyon
+    MaxLevel: 5
+    Type: Magic
+    TargetType: Ground
+    DamageType:
+      NoDamage: true
+    Range: 0
+    Hit: Single
+    HitCount: 1
+    Element: Earth
+    AfterCastActDelay: 1000
+    SkillData1: 60000
+    Unit:
+      Id: Canyon # UNT_CANYON = 0xc5
+      Layout: 4
+      Range: 1
+      Interval: 5000
+      Target: All
+    Status: Restart_Canyon

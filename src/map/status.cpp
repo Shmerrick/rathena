@@ -4351,6 +4351,97 @@ int32 status_calc_pc_sub(map_session_data* sd, uint8 opt)
 	base_status->watk = status_weapon_atk(base_status->rhw);
 	base_status->watk2 = status_weapon_atk(base_status->lhw);
 	base_status->eatk = sd->bonus.eatk;
+	// [RESTART] Weapon mastery: bonus eatk based on equipped weapon — shows in ATK stat,
+	// applied before % multipliers (behaves like card/equipment bonus ATK)
+	{
+		int skill_lv;
+		switch (sd->status.weapon) {
+			case W_DAGGER:
+				// SR_BLADEMASTERY: Blade Mastery (1st class, Swordsman + Thief)
+				if ((skill_lv = pc_checkskill(sd, SR_BLADEMASTERY)) > 0)
+					sd->bonus.eatk += skill_lv * 5;
+				if ((skill_lv = pc_checkskill(sd, BA_MUSICALLESSON)) > 0)
+					sd->bonus.eatk += skill_lv * 5;
+				if ((skill_lv = pc_checkskill(sd, DC_DANCINGLESSON)) > 0)
+					sd->bonus.eatk += skill_lv * 5;
+				break;
+			case W_1HSWORD:
+				if ((skill_lv = pc_checkskill(sd, SR_BLADEMASTERY)) > 0)
+					sd->bonus.eatk += skill_lv * 5;
+				if ((skill_lv = pc_checkskill(sd, SM_TWOHAND)) > 0)
+					sd->bonus.eatk += skill_lv * 5;
+				break;
+			case W_2HSWORD:
+				if ((skill_lv = pc_checkskill(sd, SM_TWOHAND)) > 0)
+					sd->bonus.eatk += skill_lv * 5;
+				break;
+			case W_1HSPEAR:
+			case W_2HSPEAR:
+				if ((skill_lv = pc_checkskill(sd, KN_SPEARMASTERY)) > 0)
+					sd->bonus.eatk += skill_lv * 5;
+				break;
+			case W_1HAXE:
+				if ((skill_lv = pc_checkskill(sd, AM_AXEMASTERY)) > 0)
+					sd->bonus.eatk += skill_lv * 5;
+				if ((skill_lv = pc_checkskill(sd, AS_KATAR)) > 0)
+					sd->bonus.eatk += skill_lv * 10; // MaxLevel 5, +10/lv = +50 max
+				break;
+			case W_2HAXE:
+				if ((skill_lv = pc_checkskill(sd, AM_AXEMASTERY)) > 0)
+					sd->bonus.eatk += skill_lv * 5;
+				break;
+			case W_MACE:
+				if ((skill_lv = pc_checkskill(sd, PR_MACEMASTERY)) > 0)
+					sd->bonus.eatk += skill_lv * 5;
+				break;
+			case W_FIST:
+			case W_KNUCKLE:
+				if ((skill_lv = pc_checkskill(sd, MO_IRONHAND)) > 0)
+					sd->bonus.eatk += skill_lv * 10; // MaxLevel 5, +10/lv = +50 max
+				break;
+			case W_MUSICAL:
+				if ((skill_lv = pc_checkskill(sd, BA_MUSICALLESSON)) > 0)
+					sd->bonus.eatk += skill_lv * 5;
+				break;
+			case W_WHIP:
+				if ((skill_lv = pc_checkskill(sd, DC_DANCINGLESSON)) > 0)
+					sd->bonus.eatk += skill_lv * 5;
+				break;
+			case W_BOOK:
+				if ((skill_lv = pc_checkskill(sd, PR_MACEMASTERY)) > 0)
+					sd->bonus.eatk += skill_lv * 5;
+				if ((skill_lv = pc_checkskill(sd, SA_ADVANCEDBOOK)) > 0)
+					sd->bonus.eatk += skill_lv * 5;
+				break;
+			case W_KATAR:
+				if ((skill_lv = pc_checkskill(sd, AS_KATAR)) > 0)
+					sd->bonus.eatk += skill_lv * 10; // MaxLevel 5, +10/lv = +50 max
+				break;
+			case W_STAFF:
+				if ((skill_lv = pc_checkskill(sd, SA_ADVANCEDBOOK)) > 0)
+					sd->bonus.eatk += skill_lv * 5;
+				break;
+			default: break;
+		}
+		// TK_RUN: fist-only (Taekwon class)
+		if (sd->status.weapon == W_FIST) {
+			if ((skill_lv = pc_checkskill(sd, TK_RUN)) > 0)
+				sd->bonus.eatk += skill_lv * 5;
+		}
+		// GN_TRAINING_SWORD MaxLevel 5 — +10/level = +50 at 5
+		if (sd->status.weapon == W_DAGGER || sd->status.weapon == W_1HSWORD) {
+			if ((skill_lv = pc_checkskill(sd, GN_TRAINING_SWORD)) > 0)
+				sd->bonus.eatk += skill_lv * 10;
+		}
+		// NC_TRAININGAXE: axe +10/level, mace +10/level (MaxLevel 5)
+		if (sd->status.weapon == W_1HAXE || sd->status.weapon == W_2HAXE ||
+		    sd->status.weapon == W_MACE  || sd->status.weapon == W_2HMACE) {
+			if ((skill_lv = pc_checkskill(sd, NC_TRAININGAXE)) > 0)
+				sd->bonus.eatk += skill_lv * 10;
+		}
+		// After all mastery bonuses are summed, push back into base_status->eatk
+		base_status->eatk = sd->bonus.eatk;
+	}
 #endif
 
 // ----- HP MAX CALCULATION -----
@@ -4731,6 +4822,11 @@ int32 status_calc_pc_sub(map_session_data* sd, uint8 opt)
 		}
 		sd->indexed_bonus.subrace[RC_UNDEAD] += race_def[skill - 1];
 		sd->indexed_bonus.subrace[RC_DEMON] += race_def[skill - 1];
+	}
+	// [RESTART] Steadfast Conviction: -1% damage taken from demon/undead per level
+	if ((skill = pc_checkskill(sd, RESTART_STEADFASTCONVICTION)) > 0) {
+		sd->indexed_bonus.subrace[RC_DEMON] += skill;
+		sd->indexed_bonus.subrace[RC_UNDEAD] += skill;
 	}
 	if ((skill = pc_checkskill(sd, CD_MACE_BOOK_M)) > 0 && (sd->status.weapon == W_MACE || sd->status.weapon == W_2HMACE || sd->status.weapon == W_BOOK)) {
 		uint8 attack_bonus[SZ_MAX][10] = {
@@ -7684,6 +7780,9 @@ static int16 status_calc_flee(block_list *bl, status_change *sc, int32 flee)
 		flee -= flee * 50/100;
 	if(sc->getSCE(SC_BLIND))
 		flee -= flee * 25/100;
+	// [RESTART] Stun: flee -100 flat (OPT1_STUN no longer auto-hits; uses flee penalty instead)
+	if(sc->getSCE(SC_STUN))
+		flee -= 100;
 	if(sc->getSCE(SC_FEAR))
 		flee -= flee * 20 / 100;
 	if(sc->getSCE(SC_PARALYSE) && sc->getSCE(SC_PARALYSE)->val3 == 1)
@@ -7793,6 +7892,9 @@ static defType status_calc_def(block_list *bl, status_change *sc, int32 def)
 		def -= 20 + 10 * sc->getSCE(SC_ANGRIFFS_MODUS)->val1;
 	if(sc->getSCE(SC_STONEHARDSKIN))
 		def += sc->getSCE(SC_STONEHARDSKIN)->val1;
+	// [RESTART] Canyon land: +DEF while standing in area
+	if (sc->getSCE(SC_RESTART_CANYON))
+		def += sc->getSCE(SC_RESTART_CANYON)->val2;
 	if(sc->getSCE(SC_STONE))
 		def /= 2;
 	if(sc->getSCE(SC_FREEZE))
@@ -7971,6 +8073,12 @@ static defType status_calc_mdef(block_list *bl, status_change *sc, int32 mdef)
 		mdef += sc->getSCE(SC_STONE_WALL)->val3;
 	if (sc->getSCE(SC_CLIMAX_CRYIMP))
 		mdef += 100;
+	// [RESTART] Canyon land: +MDEF while standing in area
+	if (sc->getSCE(SC_RESTART_CANYON))
+		mdef += sc->getSCE(SC_RESTART_CANYON)->val2;
+	// [RESTART] Sense debuff: -10% MDEF
+	if (sc->getSCE(SC_RESTART_SENSED))
+		mdef -= mdef * sc->getSCE(SC_RESTART_SENSED)->val1 / 100;
 
 	return (defType)cap_value(mdef,DEFTYPE_MIN,DEFTYPE_MAX);
 }
@@ -8048,6 +8156,7 @@ static uint16 status_calc_speed(block_list *bl, status_change *sc, int32 speed)
 			speed_rate = 175 - 5 * pc_checkskill(sd,SA_FREECAST);
 	} else {
 		int32 val = 0;
+		int32 blind_slow_added = 0; // [RESTART] Tracks how much speed slow blind specifically added
 
 		// GetMoveHasteValue2()
 		if( sc->getSCE(SC_FUSION) )
@@ -8061,6 +8170,9 @@ static uint16 status_calc_speed(block_list *bl, status_change *sc, int32 speed)
 				val = battle_config.rental_mount_speed_boost;
 		}
 		speed_rate -= val;
+		// [RESTART] Blind cancels mount/riding speed bonus
+		if (val > 0 && sc->getSCE(SC_BLIND))
+			speed_rate += val;
 
 		// GetMoveSlowValue()
 		if( sd && sc->getSCE(SC_HIDING) && pc_checkskill(sd,RG_TUNNELDRIVE) > 0 )
@@ -8143,6 +8255,12 @@ static uint16 status_calc_speed(block_list *bl, status_change *sc, int32 speed)
 
 			if( sd && sd->bonus.speed_rate + sd->bonus.speed_add_rate > 0 ) // Permanent item-based speedup
 				val = max( val, sd->bonus.speed_rate + sd->bonus.speed_add_rate );
+			// [RESTART] Blind: -5% movement speed (overridden if a speed-buff SC is applied)
+			if (sc->getSCE(SC_BLIND)) {
+				int32 prev_val = val;
+				val = max(val, 5);
+				blind_slow_added = val - prev_val;
+			}
 		}
 		speed_rate += val;
 		val = 0;
@@ -8202,6 +8320,10 @@ static uint16 status_calc_speed(block_list *bl, status_change *sc, int32 speed)
 		// !FIXME: official items use a single bonus for this [ultramage]
 		if( sd && sd->bonus.speed_rate + sd->bonus.speed_add_rate < 0 ) // Permanent item-based speedup
 			val = max( val, -(sd->bonus.speed_rate + sd->bonus.speed_add_rate) );
+
+		// [RESTART] Speed-buff SC while blind cancels blind's -5% speed penalty
+		if (blind_slow_added > 0 && val > 0)
+			speed_rate -= blind_slow_added;
 
 		speed_rate -= val;
 
@@ -8324,6 +8446,9 @@ static int16 status_calc_aspd(block_list *bl, status_change *sc, bool fixed)
 		}
 		if (sc->getSCE(SC_FREEZING))
 			bonus -= 30;
+		// [RESTART] Sleep: -25% ASPD while sleeping
+		if (sc->getSCE(SC_SLEEP))
+			bonus -= 25;
 		if (sc->getSCE(SC_HALLUCINATIONWALK_POSTDELAY))
 			bonus -= 50;
 		if (sc->getSCE(SC_PARALYSE) && sc->getSCE(SC_PARALYSE)->val3 == 1)
@@ -10341,8 +10466,8 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 				return false;
 			break;
 		case SC_SIGNUMCRUCIS:
-			// Only affects demons and undead element (but not players)
-			if((!undead_flag && status->race!=RC_DEMON) || bl->type == BL_PC)
+			// [RESTART] Affects ALL enemies (not players); demon/undead get full reduction, others half
+			if(bl->type == BL_PC)
 				return false;
 			break;
 		case SC_KYRIE:
@@ -10816,9 +10941,35 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 			default:
 				if (scdb->flag[SCF_OVERLAPIGNORELEVEL])
 					break;
-				if(sce->val1 > val1)
-					return true; // Return true to not mess up skill animations. [Skotlex]
-		}
+				if(sce->val1 > val1) {
+					// [RESTART] Non-immobilizing SCs extend their timer on re-application instead of being ignored
+					bool is_immobilizing;
+					switch (type) {
+						case SC_STUN: case SC_SLEEP: case SC_FREEZE:
+						case SC_STONE: case SC_STONEWAIT: case SC_STOP:
+						case SC_ANKLE: case SC_DEEPSLUMBER: case SC_BITE:
+						case SC_TINDER_BREAKER: case SC_SPIDERWEB: case SC_CRYSTALIZE:
+						case SC_STASIS: case SC__MANHOLE: case SC_THORNSTRAP:
+							is_immobilizing = true;
+							break;
+						default:
+							is_immobilizing = false;
+							break;
+					}
+					if (!is_immobilizing && sce->timer != INVALID_TIMER) {
+						t_tick remaining = DIFF_TICK(get_timer(sce->timer)->tick, gettick());
+						if (remaining < 0) remaining = 0;
+						bool is_boss_like = (status->mode & MD_STATUSIMMUNE && scdb->flag[SCF_BOSSRESIST]) ||
+						                    (status->mode & MD_MVP && scdb->flag[SCF_MVPRESIST]);
+						t_tick max_remaining = is_boss_like ? 1000 : 10000;
+						t_tick new_remaining = std::min<t_tick>(remaining + (t_tick)tick, max_remaining);
+						delete_timer(sce->timer, status_change_timer);
+						sce->timer = add_timer(gettick() + new_remaining, status_change_timer, bl->id, type);
+						return true; // Timer extended; no stat recalc needed
+					}
+					return true; // Immobilizing or permanent: ignore re-application as before [Skotlex]
+				}
+			}
 	}
 
 	view_data* vd = status_get_viewdata(bl);
@@ -10891,7 +11042,9 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 			tick = INFINITE_TICK;
 			break;
 		case SC_SIGNUMCRUCIS:
-			val2 = 10 + 4*val1; // Def reduction
+			// [RESTART] val2 pre-set by crucis.cpp (full or half DEF reduction based on race)
+			// Fallback for any old/direct sc_start calls
+			if (!val2) val2 = 10 + 4*val1;
 			tick = INFINITE_TICK;
 			clif_emotion( *bl, ET_SWEAT );
 			break;
@@ -11146,6 +11299,33 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 
 		case SC_RESTART_BOSS_REFLECT:
 			// [RESTART] Boss protocol reflect shield — no init vals needed, reflect checked in battle/skill code
+			break;
+
+		case SC_RESTART_DIVINE_FURY:
+			// [RESTART] Signum Crucis proc buff: val1=skill_lv, 30s duration
+			// +10% damage vs demon/undead, +5% vs all races
+			break;
+
+		case SC_RESTART_CANYON:
+			{
+				// [RESTART] Canyon land skill: mirrors Volcano pattern for Earth element
+				// val2 = DEF/MDEF boost (flat, same formula as Volcano's ATK boost in RENEWAL)
+				// val3 = earth element damage boost % (same enchant table as other lands)
+				int8 enchant_eff[] = { 10, 14, 17, 19, 20 };
+				uint8 i = max((val1-1)%5, 0);
+				val2 = 5 + val1 * 5; // DEF/MDEF increase
+				val3 = enchant_eff[i]; // Earth dmg boost %
+			}
+			break;
+
+		case SC_RESTART_SENSED:
+			// [RESTART] Sense debuff: -10% MDEF for 60 seconds
+			val1 = 10; // 10% MDEF reduction
+			break;
+
+		case SC_RESTART_LANDMASTERY:
+			// [RESTART] Sage land mastery: free gemstone recast on same land skill
+			// val1 = skill_id of the last land skill cast (SA_VOLCANO, SA_DELUGE, SA_VIOLENTGALE, RESTART_CANYON)
 			break;
 
 		case SC_ASPDPOTION0:
@@ -15555,9 +15735,11 @@ static int32 status_natural_heal(block_list* bl, va_list args)
 	ud = unit_bl2ud(bl);
 
 	if (ud && ud->walktimer != INVALID_TIMER) {
-		flag &= ~(RGN_SHP|RGN_SSP);
+		// [RESTART] Players regen HP/SP/skills while moving — no flags stripped for BL_PC
+		if (bl->type != BL_PC)
+			flag &= ~(RGN_SHP|RGN_SSP);
 		//Mercenaries recover HP even while walking
-		if(bl->type != BL_MER && !regen->state.walk)
+		if(bl->type != BL_MER && bl->type != BL_PC && !regen->state.walk)
 			flag &= ~RGN_HP;
 		//Homunculus don't recover SP while walking
 		if (bl->type == BL_HOM && !regen->state.walk)
@@ -15577,9 +15759,7 @@ static int32 status_natural_heal(block_list* bl, va_list args)
 	if (flag&RGN_HP) {
 		// Interval to next recovery tick
 		rate = (int32)(battle_config.natural_healhp_interval / (regen->rate.hp/100. * multi));
-		// Half recovery while moving only applies to players with certain traits
-		if (sd && ud && ud->walktimer != INVALID_TIMER)
-			rate *= 2;
+		// [RESTART] Players regen at full rate while moving; no walking penalty
 		// Homun HP regen fix (2 seconds instead of 6 seconds)
 		if(bl->type == BL_HOM)
 			rate /= 3;

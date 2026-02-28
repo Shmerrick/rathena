@@ -9,12 +9,8 @@ SkillCartRevolution::SkillCartRevolution() : SkillImplRecursiveDamageSplash(MC_C
 }
 
 void SkillCartRevolution::calculateSkillRatio(const Damage *wd, const block_list *src, const block_list *target, uint16 skill_lv, int32 &base_skillratio, int32 mflag) const {
-	const map_session_data *sd = BL_CAST(BL_PC, src);
-	base_skillratio += 50;
-	if (sd && sd->cart_weight)
-		base_skillratio += 100 * sd->cart_weight / sd->cart_weight_max; // +1% every 1% weight
-	else if (!sd)
-		base_skillratio += 100; // Max damage for non players.
+	// [RESTART] Flat 200% ATK, no weight scaling.
+	base_skillratio += 100;
 }
 
 void SkillCartRevolution::modifyHitRate(int16 &hit_rate, const block_list *src, const block_list *target, uint16 skill_lv) const {

@@ -1629,20 +1629,8 @@ Body:
     Buy: 4500
     Weight: 200
     Jobs:
-      Alchemist: true
-      Blacksmith: true
-      Crusader: true
-      Gunslinger: true
-      Knight: true
-      Mage: true
-      Merchant: true
-      Rebellion: true
-      Rogue: true
-      SoulLinker: true
-      StarGladiator: true
-      Swordman: true
-      Taekwon: true
-      Wizard: true
+      All: true
+      Novice: false
     EquipLevelMin: 85
     Flags:
       BuyingStore: true

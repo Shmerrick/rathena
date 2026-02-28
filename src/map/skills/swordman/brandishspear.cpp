@@ -57,25 +57,6 @@ void SkillBrandishSpear::castendDamageId(block_list* src, block_list* target, ui
 }
 
 void SkillBrandishSpear::calculateSkillRatio(const Damage* wd, const block_list* src, const block_list* target, uint16 skill_lv, int32& base_skillratio, int32 mflag) const {
-#ifdef RENEWAL
-	const status_data* sstatus = status_get_status_data(*src);
-
-	base_skillratio += -100 + 400 + 100 * skill_lv + sstatus->str * 3;
-#else
-	int32 ratio = 100 + 20 * skill_lv;
-
-	base_skillratio += -100 + ratio;
-	if (skill_lv > 3 && wd->miscflag == 0)
-		base_skillratio += ratio / 2;
-	if (skill_lv > 6 && wd->miscflag == 0)
-		base_skillratio += ratio / 4;
-	if (skill_lv > 9 && wd->miscflag == 0)
-		base_skillratio += ratio / 8;
-	if (skill_lv > 6 && wd->miscflag == 1)
-		base_skillratio += ratio / 2;
-	if (skill_lv > 9 && wd->miscflag == 1)
-		base_skillratio += ratio / 4;
-	if (skill_lv > 9 && wd->miscflag == 2)
-		base_skillratio += ratio / 2;
-#endif
+	// [RESTART] lv1=250% ... lv10=700% (step 50%/level). No inner/outer ring split.
+	base_skillratio += 100 + 50 * skill_lv;
 }

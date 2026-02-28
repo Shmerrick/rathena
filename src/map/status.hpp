@@ -1451,6 +1451,10 @@ enum sc_type : int16 {
 	SC_RESTART_COMBO2, // displayed after Chain Combo fires     (icon: 2)
 	SC_RESTART_COMBO3, // displayed after Combo Finish fires    (icon: 3)
 	SC_RESTART_BOSS_REFLECT, // boss protocol reflect shield (active when no player within 5 cells)
+	SC_RESTART_DIVINE_FURY,  // Signum Crucis: +10% vs demon/undead, +5% all (val1=skill_lv; 30s)
+	SC_RESTART_CANYON,       // Canyon land: earth dmg boost + DEF/MDEF in area (val1=skill_lv)
+	SC_RESTART_SENSED,       // Sense debuff: -10% MDEF for 60s
+	SC_RESTART_LANDMASTERY,  // Sage: free gemstone recast on same land skill (val1=skill_id of last cast land)
 
 	SC_MAX, //Automatically updated max, used in for's to check we are within bounds.
 };
@@ -2958,6 +2962,14 @@ enum efst_type : int16{
 	EFST_RESTART_COMBO3,
 	// [RESTART] Boss protocol reflect shield icon (1692)
 	EFST_RESTART_BOSS_REFLECT,
+	// [RESTART] Divine Fury (Signum Crucis proc) icon (1693)
+	EFST_RESTART_DIVINE_FURY,
+	// [RESTART] Canyon land skill icon (1694)
+	EFST_RESTART_CANYON,
+	// [RESTART] Sense debuff icon (1695)
+	EFST_RESTART_SENSED,
+	// [RESTART] Sage land mastery buff icon (1696) — free gemstone recast on same land
+	EFST_RESTART_LANDMASTERY,
 
 	EFST_MAX,
 };

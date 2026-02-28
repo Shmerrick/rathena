@@ -17,6 +17,10 @@ void SkillFirePillar::castendPos2(block_list* src, int32 x, int32 y, uint16 skil
 
 void SkillFirePillar::calculateSkillRatio(const Damage* wd, const block_list* src, const block_list* target, uint16 skill_lv, int32& base_skillratio, int32 mflag) const {
 	base_skillratio += -60 + 20 * skill_lv; //20% MATK each hit
+	// [RESTART] Fire Pillar in Volcano: x4 total MATK (+300%)
+	// normal = 40+20*lv%; volcano = 160+80*lv%; extra base_skillratio = 120+60*lv
+	if (mflag & 0x10000)
+		base_skillratio += 120 + 60 * skill_lv;
 }
 
 void SkillFirePillar::applyAdditionalEffects(block_list* src, block_list* target, uint16 skill_lv, t_tick tick, int32 attack_type, enum damage_lv dmg_lv) const {
