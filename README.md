@@ -1,81 +1,553 @@
-<img src="doc/logo.png" align="right" height="90" />
+# RESTART — Private Ragnarok Online Server
 
-# rAthena
-![clang](https://img.shields.io/github/actions/workflow/status/rathena/rathena/build_servers_clang.yml?label=clang%20build&logo=llvm) 
-![cmake](https://img.shields.io/github/actions/workflow/status/rathena/rathena/build_servers_cmake.yml?label=cmake%20build&logo=cmake)
-![gcc](https://img.shields.io/github/actions/workflow/status/rathena/rathena/build_servers_gcc.yml?label=gcc%20build&logo=gnu) 
-![ms](https://img.shields.io/github/actions/workflow/status/rathena/rathena/build_servers_msbuild.yml?label=ms%20build&logo=visualstudio) 
-![GitHub](https://img.shields.io/github/license/rathena/rathena.svg) 
-![commit activity](https://img.shields.io/github/commit-activity/w/rathena/rathena) 
-![GitHub repo size](https://img.shields.io/github/repo-size/rathena/rathena.svg)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/rathena/rathena)
+A custom Ragnarok Online server based on rAthena, combining Renewal content with pre-Renewal gameplay mechanics and custom skill/balance changes.
 
+---
 
-> rAthena is a collaborative software development project revolving around the creation of a robust massively multiplayer online role playing game (MMORPG) server package. Written in C++, the program is very versatile and provides NPCs, warps and modifications. The project is jointly managed by a group of volunteers located around the world as well as a tremendous community providing QA and support. rAthena is a continuation of the eAthena project.
+## Table of Contents
 
-[Forum](https://rathena.org/board)|[Discord](https://rathena.org/discord)|[Wiki](https://github.com/rathena/rathena/wiki)|[FluxCP](https://github.com/rathena/FluxCP)|[Crowdfunding](https://rathena.org/board/crowdfunding/)|[Fork and Pull Request Q&A](https://rathena.org/board/topic/86913-pull-request-qa/)
---------|--------|--------|--------|--------|--------
-
-### Table of Contents
 1. [Prerequisites](#1-prerequisites)
-2. [Installation](#2-installation)
-3. [Troubleshooting](#3-troubleshooting)
-4. [More Documentation](#4-more-documentation)
-5. [How to Contribute](#5-how-to-contribute)
-6. [License](#6-license)
+2. [Database Setup](#2-database-setup)
+3. [Build the Server](#3-build-the-server)
+4. [Configure the Server](#4-configure-the-server)
+5. [Run the Server](#5-run-the-server)
+6. [Configure the Client](#6-configure-the-client)
+7. [Creating a GM Account](#7-creating-a-gm-account)
+8. [Config File Reference](#8-config-file-reference)
+9. [Troubleshooting](#9-troubleshooting)
+
+---
 
 ## 1. Prerequisites
-Before installing rAthena there are certain tools and applications you will need which
-differs between the varying operating systems available.
 
-### Hardware
-Hardware Type | Minimum | Recommended
-------|------|------
-CPU | 1 Core | 2 Cores
-RAM | 1 GB | 2 GB
-Disk Space | 300 MB | 500 MB
+### Software Required
 
-### Operating System & Preferred Compiler
-Operating System | Compiler
-------|------
-Linux  | [gcc-6 or newer](https://www.gnu.org/software/gcc/gcc-6/) / [Make](https://www.gnu.org/software/make/)
-Windows | [MS Visual Studio 2017 or newer](https://www.visualstudio.com/downloads/)
+| Software | Minimum Version | Download |
+|---|---|---|
+| **MySQL** or **MariaDB** | 5.7+ / 10.3+ | [MySQL](https://dev.mysql.com/downloads/mysql/) · [MariaDB](https://mariadb.org/download/) |
+| **Visual Studio** (Windows) | 2017 or newer | [Visual Studio](https://visualstudio.microsoft.com/downloads/) — install the **Desktop development with C++** workload |
+| **Git** | Any recent | [Git for Windows](https://gitforwindows.org/) |
 
-### Required Applications
-Application | Name
-------|------
-Database | [MySQL 5 or newer](https://www.mysql.com/downloads/) / [MariaDB 5 or newer](https://downloads.mariadb.org/)
-Git | [Windows](https://gitforwindows.org/) / [Linux](https://git-scm.com/download/linux)
+### Hardware (Minimum)
 
-### Optional Applications
-Application | Name
-------|------
-Database | [MySQL Workbench 5 or newer](http://www.mysql.com/downloads/workbench/)
+| Resource | Minimum |
+|---|---|
+| CPU | 2 cores |
+| RAM | 2 GB |
+| Disk | 1 GB |
 
-## 2. Installation 
+---
 
-### Full Installation Instructions
-  * [Windows](https://github.com/rathena/rathena/wiki/Install-on-Windows)
-  * [CentOS](https://github.com/rathena/rathena/wiki/Install-on-Centos)
-  * [Debian](https://github.com/rathena/rathena/wiki/Install-on-Debian)
-  * [FreeBSD](https://github.com/rathena/rathena/wiki/Install-on-FreeBSD)
+## 2. Database Setup
 
-## 3. Troubleshooting
+The server uses a MySQL/MariaDB database named `ragnarok`.
 
-If you're having problems with starting your server, the first thing you should
-do is check what's happening on your consoles. More often that not, all support issues
-can be solved simply by looking at the error messages given. Check out the [wiki](https://github.com/rathena/rathena/wiki)
-or [forums](https://rathena.org/board) if you need more support on troubleshooting.
+### 2.1 Create the Database
 
-## 4. More Documentation
-rAthena has a large collection of help files and sample NPC scripts located in the /doc/
-directory. These include detailed explanations of NPC script commands, atcommands (@),
-group permissions, item bonuses, and packet structures, among many other topics. We
-recommend that all users take the time to look over this directory before asking for
-assistance elsewhere.
+Open a MySQL prompt (or MySQL Workbench) and run:
 
-## 5. How to Contribute
-Details on how to contribute to rAthena can be found in [CONTRIBUTING.md](https://github.com/rathena/rathena/blob/master/.github/CONTRIBUTING.md)!
+```sql
+CREATE DATABASE ragnarok;
+```
 
-## 6. License
-Copyright (c) rAthena Development Team - Licensed under [GNU General Public License v3.0](https://github.com/rathena/rathena/blob/master/LICENSE)
+### 2.2 Import the Schema
+
+From the repository root, import the four required SQL files **in this order**:
+
+```bash
+# Using the mysql CLI — replace <user> and <password> as needed
+mysql -u root -p ragnarok < sql-files/main.sql
+mysql -u root -p ragnarok < sql-files/logs.sql
+mysql -u root -p ragnarok < sql-files/web.sql
+mysql -u root -p ragnarok < sql-files/roulette_default_data.sql
+```
+
+Or from within the MySQL prompt:
+
+```sql
+USE ragnarok;
+SOURCE sql-files/main.sql;
+SOURCE sql-files/logs.sql;
+SOURCE sql-files/web.sql;
+SOURCE sql-files/roulette_default_data.sql;
+```
+
+### 2.3 Verify
+
+```sql
+USE ragnarok;
+SHOW TABLES;
+```
+
+You should see roughly 70 tables (login, char, inventory, guild, etc.).
+
+---
+
+## 3. Build the Server
+
+### Windows — Visual Studio / MSBuild
+
+Open the solution `rAthena.sln` in Visual Studio, set the configuration to **Release / x64**, and press **Build → Build Solution**.
+
+Or build from the command line using MSBuild:
+
+```bat
+"C:\Program Files\Microsoft Visual Studio\18\Enterprise\MSBuild\Current\Bin\amd64\MSBuild.exe" ^
+    rAthena.sln ^
+    -p:Configuration=Release ^
+    -p:Platform=x64 ^
+    -m
+```
+
+After a successful build, the following executables will be in the repository root:
+
+| Executable | Purpose |
+|---|---|
+| `login-server.exe` | Handles account login authentication |
+| `char-server.exe` | Manages characters, guilds, parties |
+| `map-server.exe` | Runs the game world, maps, monsters, skills |
+| `web-server.exe` | Optional HTTP API for modern clients |
+
+### Linux — GCC / Make
+
+```bash
+sudo apt-get install gcc make libmysqlclient-dev zlib1g-dev libpcre3-dev
+./configure
+make server
+```
+
+---
+
+## 4. Configure the Server
+
+All configuration files live in the `conf/` directory. You only need to edit a small number of files for a standard setup.
+
+### 4.1 Database Credentials — `conf/inter_athena.conf`
+
+This is the **most important** file. Every server component reads DB credentials from here.
+
+Find and update all credential blocks to match your MySQL setup:
+
+```conf
+// MySQL Login server
+login_server_ip: 127.0.0.1
+login_server_port: 3306
+login_server_id: root          ← your MySQL username
+login_server_pw: password      ← your MySQL password
+login_server_db: ragnarok      ← database name (keep as-is)
+
+// (repeat the same id/pw for ipban, char, map, web, and log blocks)
+```
+
+> **Note:** If MySQL is running on the same machine as the server, leave all `_ip` fields as `127.0.0.1`.
+
+The following setting controls whether item/mob data is read from YAML files or SQL tables. Keep it set to `no` — this server uses YAML:
+
+```conf
+use_sql_db: no
+```
+
+### 4.2 Server Name & Inter-Server Password — `conf/char_athena.conf`
+
+```conf
+// The name shown in the server select screen
+server_name: RESTART
+
+// Inter-server communication password (must match map_athena.conf)
+userid: s1
+passwd: p1
+```
+
+Change `userid` / `passwd` to any secret value you like — just make sure both `char_athena.conf` and `map_athena.conf` use **the same values**.
+
+Also configure where new characters spawn:
+
+```conf
+// Starting map and coordinates
+start_point: iz_int,18,26
+```
+
+### 4.3 Map Server — `conf/map_athena.conf`
+
+```conf
+// Must match char_athena.conf userid/passwd exactly
+userid: s1
+passwd: p1
+
+// Port the map server listens on (default 5121)
+map_port: 5121
+
+// Character server port to connect to (default 6121)
+char_port: 6121
+```
+
+If you are hosting for players **outside your local network**, uncomment and set the public IP:
+
+```conf
+// Public-facing IP address clients will connect to
+map_ip: 192.168.4.55    ← replace with your actual public/LAN IP
+```
+
+### 4.4 Login Server — `conf/login_athena.conf`
+
+Defaults work out of the box. Key settings:
+
+```conf
+// Login server listens on this port
+login_port: 6900
+
+// Allow players to self-register accounts with _M/_F suffix
+// Set to yes if you want open registration
+new_account: no
+
+// Web authentication token (required for modern clients)
+use_web_auth_token: yes
+```
+
+### 4.5 Subnet Configuration — `conf/subnet_athena.conf`
+
+This file tells the servers what IP to advertise to clients connecting from the same subnet. For a local/LAN server, the default works fine:
+
+```conf
+subnet: 255.0.0.0:127.0.0.1:127.0.0.1
+```
+
+For a server with a public IP that LAN clients connect to internally, add a second entry:
+
+```conf
+subnet: 255.0.0.0:127.0.0.1:127.0.0.1
+subnet: 255.255.255.0:192.168.4.55:192.168.4.55
+```
+
+Format: `net-mask : char-server-ip : map-server-ip`
+
+### 4.6 Import / Override Files
+
+Each main config ends with an import directive pointing to a file in `conf/import/`. These files are intentionally left empty and are the **correct place to put local overrides** — they will not be overwritten by git pulls.
+
+| Import file | Overrides |
+|---|---|
+| `conf/import/inter_conf.txt` | inter_athena.conf |
+| `conf/import/char_conf.txt` | char_athena.conf |
+| `conf/import/map_conf.txt` | map_athena.conf |
+| `conf/import/login_conf.txt` | login_athena.conf |
+
+**Example** — put your credentials in `conf/import/inter_conf.txt` instead of editing `inter_athena.conf` directly:
+
+```conf
+login_server_id: root
+login_server_pw: password
+char_server_id: root
+char_server_pw: password
+map_server_id: root
+map_server_pw: password
+web_server_id: root
+web_server_pw: password
+log_db_id: root
+log_db_pw: password
+```
+
+---
+
+## 5. Run the Server
+
+Start each server **in this order**. Each must be running before the next starts.
+
+### Windows
+
+Open three separate command prompt windows and run:
+
+```bat
+:: Window 1 — Login Server
+login-server.exe
+
+:: Window 2 — Character Server (after login-server is ready)
+char-server.exe
+
+:: Window 3 — Map Server (after char-server is ready)
+map-server.exe
+```
+
+The web server is optional (only needed for some client features):
+
+```bat
+:: Window 4 — Web Server (optional)
+web-server.exe
+```
+
+### What "Ready" Looks Like
+
+Watch the console output. Each server prints a ready message when it finishes loading:
+
+- Login server: `Login server is ready and listening on port 6900`
+- Char server: `Character server is ready and listening on port 6121`
+- Map server: `Map server is ready and listening on port 5121`
+
+### Stopping the Servers
+
+Close each console window, or type `exit` in the console prompt.
+
+---
+
+## 6. Configure the Client
+
+The client used is the April 2025 English Ragnarok client located at `C:\Users\Admin\Desktop\20250416Ragnarok_en`.
+
+### 6.1 Server Connection — `data\clientinfo.xml`
+
+This is the **only file you need to edit** to point the client at your server.
+
+Open `data\clientinfo.xml` in a text editor (Notepad++ recommended — the file uses EUC-KR encoding):
+
+```xml
+<?xml version="1.0" encoding="euc-kr" ?>
+<clientinfo>
+    <desc>Ragnarok Client Information</desc>
+    <servicetype>korea</servicetype>
+    <servertype>primary</servertype>
+    <connection>
+        <display>RESTART</display>
+        <address>127.0.0.1</address>   ← server IP (127.0.0.1 for local)
+        <port>6900</port>              ← login server port (default 6900)
+        <version>55</version>          ← must match server packet version
+        <langtype>1</langtype>
+        <registrationweb>127.0.0.1</registrationweb>
+        <loading>
+            <image>loading00.jpg</image>
+            <image>loading01.jpg</image>
+            <image>loading02.jpg</image>
+            <image>loading03.jpg</image>
+            <image>loading04.jpg</image>
+            <image>loading05.jpg</image>
+            <image>loading06.jpg</image>
+        </loading>
+        <aid>
+            <admin>2000000</admin>
+        </aid>
+    </connection>
+</clientinfo>
+```
+
+**Fields to change:**
+
+| Field | What to set |
+|---|---|
+| `<display>` | Name shown in the server-select dropdown |
+| `<address>` | Your server's IP. Use `127.0.0.1` for local; use your LAN/public IP for other players |
+| `<port>` | Login server port — must match `login_port` in `login_athena.conf` (default `6900`) |
+| `<version>` | Client version number — leave as `55` unless you know it needs to change |
+
+> **Encoding warning:** Always save this file with **EUC-KR** encoding. If you save it as UTF-8 the client may fail to read it. Notepad++ → Encoding → Character sets → East Asian → Korean (EUC-KR).
+
+### 6.2 GRF Load Order — `DATA.ini`
+
+Controls which data archives the client loads and in what priority order. The current config is correct:
+
+```ini
+[Data]
+0=en.grf
+1=data.grf
+```
+
+`en.grf` is loaded first (highest priority), so English localization overrides Korean defaults in `data.grf`. Do not change this unless you are adding a custom GRF.
+
+### 6.3 Adding a Custom GRF (Optional)
+
+If you want to distribute custom textures, sprites, or sounds, package them in a GRF archive and add it as the new `0=` entry:
+
+```ini
+[Data]
+0=custom.grf
+1=en.grf
+2=data.grf
+```
+
+Tools for creating/editing GRFs: [GRF Editor](https://rathena.org/board/topic/77080-grf-grf-editor/) (free, Windows).
+
+### 6.4 Launching the Client
+
+Run `Ragexe.exe` (the April 2025 build). Do **not** run `Ragnarok.exe` — that is an older launcher.
+
+If the client shows a list of servers, select **RESTART** (or whatever you set `<display>` to) and log in.
+
+### 6.5 Connecting from Other Machines
+
+If other players want to connect over your LAN:
+
+1. Set `<address>` in `clientinfo.xml` to your machine's LAN IP (e.g. `192.168.4.55`).
+2. In `conf/char_athena.conf`, uncomment and set:
+   ```conf
+   char_ip: 192.168.4.55
+   ```
+3. In `conf/map_athena.conf`, uncomment and set:
+   ```conf
+   map_ip: 192.168.4.55
+   ```
+4. Make sure Windows Firewall allows inbound connections on ports **6900**, **6121**, and **5121**.
+
+---
+
+## 7. Creating a GM Account
+
+### 7.1 Register an Account
+
+By default `new_account: no` — so you must insert accounts directly into the database:
+
+```sql
+INSERT INTO login (userid, user_pass, sex, email)
+VALUES ('admin', 'yourpassword', 'M', 'admin@localhost');
+```
+
+Or temporarily enable in-game registration:
+
+1. Set `new_account: yes` in `conf/login_athena.conf`
+2. Launch the client and create your account by appending `_M` or `_F` to the username field (e.g. `admin_M` with the password)
+3. Set `new_account: no` again afterward
+
+### 7.2 Grant GM Level 99
+
+After the account exists in the database:
+
+```sql
+UPDATE login SET group_id = 99 WHERE userid = 'admin';
+```
+
+Group 99 is the maximum level with full permissions. See `conf/groups.conf` for a breakdown of all group levels and their permissions.
+
+### 7.3 In-Game GM Commands
+
+Once logged in as a GM, prefix commands with `@`:
+
+```
+@go 0              — teleport to Prontera
+@item 501 10       — give yourself 10 Red Potions
+@monster 1002 1    — spawn a Poring
+@speed 0           — move at maximum speed
+@warp prontera 155 180
+```
+
+Type `@help` in game for a full list.
+
+---
+
+## 8. Config File Reference
+
+### Core Config Files
+
+| File | Purpose |
+|---|---|
+| `conf/inter_athena.conf` | **Database credentials** — all servers read this. Edit MySQL username/password here. |
+| `conf/login_athena.conf` | Login server settings: port, account restrictions, IP banning, web auth token |
+| `conf/char_athena.conf` | Character server: server name, starting point/items, character rules, pincode |
+| `conf/map_athena.conf` | Map server: ports, autosave interval, motd file |
+| `conf/subnet_athena.conf` | Subnet routing: tells servers which IP to advertise to clients per subnet |
+| `conf/packet_athena.conf` | Network socket settings, DDoS protection, stall timeout |
+| `conf/channels.conf` | Chat channel system (global, map, guild channels) |
+| `conf/groups.conf` | GM group permissions — who can use which `@` commands |
+| `conf/motd.txt` | Message of the Day shown when players log in |
+
+### Battle / Gameplay Config Files (`conf/battle/`)
+
+These files control balance and gameplay mechanics. Changes take effect on server restart.
+
+| File | Controls |
+|---|---|
+| `battle.conf` | Hit rate, flee, damage caps, attack delays, critical hits |
+| `exp.conf` | Base/job EXP rates, death penalties, level caps |
+| `drops.conf` | Item drop rate multipliers, rare drop chance |
+| `skill.conf` | Skill delays, fixed cast time, knockback behavior |
+| `player.conf` | HP/SP regen intervals, max stats, inventory size |
+| `items.conf` | Item usage rules, card equip restrictions |
+| `monster.conf` | Monster spawn timers, aggro range, teleport on attack |
+| `party.conf` | Party EXP share range and rules |
+| `guild.conf` | Guild size, WoE settings |
+| `pet.conf` | Pet system mechanics |
+| `homunc.conf` | Homunculus leveling and intimacy |
+
+### Import / Override Files (`conf/import/`)
+
+Put local overrides here. These files are never overwritten by updates.
+
+| File | Overrides |
+|---|---|
+| `conf/import/inter_conf.txt` | inter_athena.conf |
+| `conf/import/char_conf.txt` | char_athena.conf |
+| `conf/import/map_conf.txt` | map_athena.conf |
+| `conf/import/login_conf.txt` | login_athena.conf |
+
+### Data / Database Files
+
+| Location | Format | Purpose |
+|---|---|---|
+| `db/re/skill_db.yml` | YAML | All skill definitions (SP, damage, cast times) |
+| `db/re/skill_tree.yml` | YAML | Job skill trees and prerequisites |
+| `db/re/item_db_*.yml` | YAML | Item definitions |
+| `db/re/mob_db.yml` | YAML | Monster stats |
+| `db/re/attr_fix.yml` | YAML | Elemental damage chart |
+| `sql-files/` | SQL | Database schema and seed data |
+
+---
+
+## 9. Troubleshooting
+
+### "Cannot connect to MySQL server"
+
+- Confirm MySQL is running: `net start mysql` (Windows) or `sudo systemctl status mysql`
+- Check credentials in `conf/inter_athena.conf` match your MySQL user/password
+- On Windows, use `127.0.0.1` not `localhost` in the config to avoid socket issues
+
+### "Failed to connect to char-server" / "Failed to connect to login-server"
+
+- Start servers in order: login → char → map. Each must be fully loaded before the next starts.
+- Check that `userid`/`passwd` in `char_athena.conf` and `map_athena.conf` match exactly.
+- Check that `login_port` in `login_athena.conf` and `login_port` in `char_athena.conf` match.
+
+### Client shows "Failed to connect to server"
+
+- Verify `<address>` and `<port>` in `data\clientinfo.xml` match the running login server's IP and port.
+- Make sure the login server is running and shows "listening on port 6900".
+- If connecting over LAN, confirm the firewall allows ports 6900, 6121, 5121.
+
+### "Unknown packet 0x..." in server console
+
+The client version does not match the server's expected packet version. The `<version>` field in `clientinfo.xml` may need adjustment, or the server needs a matching `PACKETVER` in its build configuration.
+
+### Map server crashes at startup
+
+- Usually a corrupted or missing YAML database file. Run the server from the command line to see the full error output.
+- Check `log/map-msg_log.log` for detailed error messages.
+
+### Players spawn in the wrong place
+
+Edit `start_point` in `conf/char_athena.conf`. Format: `mapname,x,y`.
+
+---
+
+## Server Architecture
+
+```
+Client (Ragexe.exe)
+    │
+    ├─ Port 6900 → login-server.exe   (account authentication)
+    │                   │
+    │                   └─ MySQL (ragnarok DB — login table)
+    │
+    ├─ Port 6121 → char-server.exe    (character management)
+    │                   │
+    │                   └─ MySQL (ragnarok DB — char, inventory, guild...)
+    │
+    └─ Port 5121 → map-server.exe     (game world)
+                        │
+                        ├─ MySQL (ragnarok DB — map data, mapreg...)
+                        └─ YAML  (db/re/*.yml — items, mobs, skills)
+
+Port 8888 → web-server.exe (optional HTTP API for new clients)
+```
+
+---
+
+## License
+
+Copyright (c) rAthena Development Team — Licensed under [GNU General Public License v3.0](LICENSE)
+
+Custom RESTART modifications copyright (c) Shmerrick.

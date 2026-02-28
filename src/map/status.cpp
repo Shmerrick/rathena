@@ -10947,7 +10947,7 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 					switch (type) {
 						case SC_STUN: case SC_SLEEP: case SC_FREEZE:
 						case SC_STONE: case SC_STONEWAIT: case SC_STOP:
-						case SC_ANKLE: case SC_DEEPSLUMBER: case SC_BITE:
+						case SC_ANKLE: case SC_DEEPSLEEP: case SC_BITE:
 						case SC_TINDER_BREAKER: case SC_SPIDERWEB: case SC_CRYSTALIZE:
 						case SC_STASIS: case SC__MANHOLE: case SC_THORNSTRAP:
 							is_immobilizing = true;

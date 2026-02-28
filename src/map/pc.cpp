@@ -9174,7 +9174,7 @@ void pc_skillup(map_session_data *sd,uint16 skill_id)
 				uint16 new_lv = sd->status.skill[idx].lv;
 				if (skill_id == KN_TWOHANDQUICKEN && new_lv >= 10)
 					pc_skill(sd, KN_ONEHAND, 1, ADDSKILL_PERMANENT);
-				else if (skill_id == MC_WEIGHTLIMIT && new_lv >= 10)
+				else if (skill_id == MC_INCCARRY && new_lv >= 10)
 					pc_skill(sd, MC_PUSHCART, 1, ADDSKILL_PERMANENT);
 			}
 
@@ -10918,13 +10918,14 @@ bool pc_jobchange(map_session_data *sd,int32 job, char upper)
 
 	// [RESTART] Grant 1 free skill point on first job change (Novice → 1st class)
 	// and another on second job change (1st class → 2nd class).
+	// sd->class_ is still the OLD class at this point; b_class is the new class.
 	if (!(b_class & (JOBL_2|JOBL_THIRD|JOBL_FOURTH|JOBL_UPPER))
-		&& (b_class & MAPID_BASEMASK) != MAPID_NOVICE
-		&& (previous_class & MAPID_BASEMASK) == MAPID_NOVICE) {
+		&& b_class != MAPID_NOVICE
+		&& sd->class_ == MAPID_NOVICE) {
 		// Transitioning from Novice to 1st class
 		sd->status.skill_point += 1;
 		clif_updatestatus(*sd, SP_SKILLPOINT);
-	} else if ((b_class & JOBL_2) && !(previous_class & JOBL_2)) {
+	} else if ((b_class & JOBL_2) && !(sd->class_ & JOBL_2)) {
 		// Transitioning from 1st class to 2nd class
 		sd->status.skill_point += 1;
 		clif_updatestatus(*sd, SP_SKILLPOINT);
