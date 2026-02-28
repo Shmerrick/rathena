@@ -1,0 +1,28 @@
+# WARP2025 Session File — RESTART Private Server Client Patches
+#
+# Used by patch-client.bat with warp2025/win32/WARP_console.exe.
+# This session targets the 2024-2025 Ragnarok client executables.
+#
+# Patch source: tools/warp2025 (hiphop9/Warp2025)
+#
+# The 'from' and 'to' paths below are defaults. Override them by passing
+# arguments to patch-client.bat, or edit them here for your setup.
+
+from: C:\Users\Admin\Desktop\20250416Ragnarok_en\Ragexe.exe
+to:   C:\Users\Admin\Desktop\20250416Ragnarok_en\Ragexe_patched.exe
+
+patches:
+    # Disable GameGuard anti-cheat — blocks connections to private servers
+    - NoGGuard
+
+    # Disable map server packet encryption — matches server-side #undef PACKET_OBFUSCATION
+    - NoPacketEncr
+
+    # Disable login/char server packet encryption
+    - NoEncrForLC
+
+    # Read loose data\ folder before GRF files — required for clientinfo.xml to load
+    - DataFolderFirst
+
+    # Ensure client calls SelectKoreaClientInfo() so server list in clientinfo.xml is used
+    - CallKoreaClientInfo

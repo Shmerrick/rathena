@@ -4,6 +4,19 @@ A custom Ragnarok Online server based on rAthena, combining Renewal content with
 
 ---
 
+## Current Status
+
+| Component | Status | Notes |
+|---|---|---|
+| Login server | **Working** | Starts cleanly, accepts connections |
+| Char server | **Working** | Starts cleanly, connects to login |
+| Map server | **Working** | Loads maps, mobs, and YAML DBs |
+| Web server | **Working** | Starts cleanly |
+| Database | **Working** | 70 tables imported, MySQL 8.0 auth fixed |
+| **Client patching** | **FAILED** | WARP (Neo-Mind) and WARP2025 (hiphop9) integrated as submodules but all patches fail with "reference location not found" on the April 2025 client. Client cannot connect to the server. See [Section 9 — Client Patching Failed](#client-patching-completely-failed-all-warp-patches-fail). |
+
+---
+
 ## Table of Contents
 
 1. [Prerequisites](#1-prerequisites)
@@ -377,30 +390,20 @@ Open `data\clientinfo.xml` in a text editor (Notepad++ recommended — the file 
 
 ### 6.2 Patch the Client with WARP (Required)
 
-The stock `Ragexe.exe` has **GameGuard** (anti-cheat) enabled and uses **packet encryption** that is incompatible with a private server. You must patch it using **WARP** before it will connect.
+> **STATUS: FAILED — Client patching is not currently working.**
+>
+> The stock `Ragexe.exe` requires patching to disable GameGuard and packet encryption before it
+> can connect to a private server. Two WARP tools were integrated and tested against the April
+> 2025 client (`20250416Ragnarok_en\Ragexe.exe`). Both tools fail to apply all required patches —
+> WARP reports "reference location not found" for every patch, meaning the byte patterns the
+> scripts search for do not exist in the current client binary. **The client cannot currently
+> connect to the server.** The servers themselves are working correctly.
+>
+> What was attempted and what is needed next is documented in [Section 9](#client-patching-completely-failed-all-warp-patches-fail).
 
-The WARP tool is integrated as a git submodule in `tools/warp/` (Neo-Mind/WARP) and `tools/warp2025/` (hiphop9/Warp2025). These are always kept up to date automatically when you build.
+The WARP tool has been integrated as git submodules in `tools/warp/` (Neo-Mind/WARP, `rock_win32` branch) and `tools/warp2025/` (hiphop9/Warp2025). Session files for both are at `tools/warp-restart.yml` and `tools/warp2025-restart.yml`.
 
-#### Automated patching (recommended)
-
-Run from the repository root:
-
-```bat
-patch-client.bat
-```
-
-This script:
-1. Pulls the latest WARP patch scripts from both submodules
-2. Applies the RESTART patch set to `Ragexe.exe` using `WARP_console.exe`
-3. Saves the result as `Ragexe_patched.exe` in the client folder
-
-To patch a client at a different path:
-
-```bat
-patch-client.bat "D:\Ragnarok\Ragexe.exe"
-```
-
-#### Patches applied (`tools/warp-restart.yml`)
+#### What patching is supposed to do
 
 | Patch key | Title | Purpose |
 |---|---|---|
@@ -408,37 +411,26 @@ patch-client.bat "D:\Ragnarok\Ragexe.exe"
 | `NoPacketEncr` | Disable Map packet encryption | Matches `#undef PACKET_OBFUSCATION` in the server build |
 | `NoEncrForLC` | Disable Login/Char encryption | Disables encryption on login and char server packets |
 | `DataFolderFirst` | Read data folder first | Loads loose `data\` files before GRF — required for `clientinfo.xml` |
+| `CallKoreaClientInfo` | Call Korea client info | Ensures server list in `clientinfo.xml` is used (WARP2025 only) |
 
-To change which patches are applied, edit `tools/warp-restart.yml`.
+#### Automated patching script (built, currently non-functional)
 
-#### Manual patching (alternative)
-
-If `patch-client.bat` fails, you can run WARP directly:
+`patch-client.bat` was written to automate patching. It:
+1. Updates the WARP submodules from their remotes
+2. Stubs out GameGuard DLL files so the client folder passes startup checks
+3. Runs `WARP_console.exe` with the session file
 
 ```bat
-tools\warp\win32\WARP_console.exe using tools\warp-restart.yml
+patch-client.bat
+patch-client.bat "D:\Ragnarok\Ragexe.exe"
 ```
 
-Or open the GUI: `tools\warp\win32\WARP.exe`
+This script completes without error but no patches are actually applied due to the pattern-match failures.
 
-#### Initial submodule setup
-
-If you just cloned the repository, initialize submodules first:
+#### Submodule setup
 
 ```bat
 git submodule update --init --recursive
-```
-
-This downloads `tools/warp` and `tools/warp2025`.
-
-#### WARP submodule auto-update during builds
-
-A `Directory.Build.targets` file at the repository root tells MSBuild to run `git submodule update --remote tools/warp tools/warp2025` before every build. This keeps the WARP patch scripts current automatically.
-
-To skip the update for a specific build:
-
-```bat
-MSBuild.exe rAthena.sln -p:SkipWarpUpdate=true ...
 ```
 
 ### 6.3 GRF Load Order — `DATA.ini`
@@ -649,6 +641,47 @@ Restart all servers after changing these files.
 ### "Unknown packet 0x..." in server console
 
 The client version does not match the server's expected packet version. The `<version>` field in `clientinfo.xml` may need adjustment, or the server needs a matching `PACKETVER` in its build configuration.
+
+### Client patching completely failed — all WARP patches fail
+
+**This is the current blocking issue for the project.**
+
+#### What happened
+
+WARP (Neo-Mind/WARP `rock_win32` branch) and WARP2025 (hiphop9/Warp2025) were both integrated as git submodules. `patch-client.bat` was built to automate patching. Testing against the April 2025 English client (`20250416Ragnarok_en\Ragexe.exe`) shows that every patch — `NoGGuard`, `NoPacketEncr`, `NoEncrForLC`, `DataFolderFirst`, `CallKoreaClientInfo` — fails with "reference location not found."
+
+WARP's patch scripts work by scanning the executable for specific byte sequences (code patterns). If the client is compiled differently from what the script expects, the patterns are not found and the patch is skipped. The April 2025 client appears to have a different enough binary layout that neither tool's patterns match.
+
+#### What was tried
+
+| Tool | Submodule | Session file | Result |
+|---|---|---|---|
+| Neo-Mind/WARP (`rock_win32`) | `tools/warp` | `tools/warp-restart.yml` | All patches: "reference location not found" |
+| hiphop9/Warp2025 | `tools/warp2025` | `tools/warp2025-restart.yml` | All patches: "reference location not found" |
+
+Both tools' `LastSession.yml` files confirm zero patches were applied.
+
+#### Why this matters
+
+Without at minimum `NoGGuard` (or equivalent): the client's anti-cheat DLL intercepts the login packet and blocks the connection before it reaches the server.
+
+Without `NoPacketEncr` / `NoEncrForLC`: even if GameGuard were bypassed, the client would send encrypted packets that the server (compiled with `#undef PACKET_OBFUSCATION`) cannot read.
+
+#### What to try next
+
+1. **Check whether the client already ships without encryption.** Some EN-patched clients distributed by community sites are pre-patched (GameGuard removed, no encryption). If the client in `20250416Ragnarok_en\` was sourced from such a distribution, `DataFolderFirst` may be the only remaining requirement — and that patch can be worked around via `DATA.ini` ordering alone.
+
+2. **Try a different client version.** WARP scripts are version-specific. A slightly older client (e.g. `20240320` or similar) may have patterns that match. The server's `PACKETVER 20250402` must match the client.
+
+3. **Use NEMO instead of WARP.** NEMO (another Ragnarok patcher) has different script coverage and may support the April 2025 client. Download from the rAthena forums.
+
+4. **Manual hex patching.** The minimal required changes (disable GameGuard linkage, zero out the encryption key in the packet header) can be done with a hex editor if the offsets can be located via a disassembler (e.g. x64dbg, IDA Free, Ghidra).
+
+5. **Update WARP submodules and retry.** WARP scripts are updated frequently. Run:
+   ```bat
+   git submodule update --remote tools/warp tools/warp2025
+   patch-client.bat
+   ```
 
 ### `patch-client.bat` — WARP patches fail with "reference location not found"
 

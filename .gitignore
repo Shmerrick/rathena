@@ -152,3 +152,9 @@ Thumbs.db
 
 # generated files
 generated
+
+# Claude Code local settings (not for version control)
+/.claude/
+
+# CMake / MSVC build output
+/out/
