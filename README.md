@@ -8,10 +8,12 @@ A custom Ragnarok Online server based on rAthena, combining Renewal content with
 
 1. [Prerequisites](#1-prerequisites)
 2. [Database Setup](#2-database-setup)
+   - 2.4 [MySQL 8.0 Auth Plugin Fix (Required)](#24-mysql-80--fix-authentication-plugin-required)
 3. [Build the Server](#3-build-the-server)
 4. [Configure the Server](#4-configure-the-server)
 5. [Run the Server](#5-run-the-server)
 6. [Configure the Client](#6-configure-the-client)
+   - 6.2 [Patch the Client with WARP (Required)](#62-patch-the-client-with-warp-required)
 7. [Creating a GM Account](#7-creating-a-gm-account)
 8. [Config File Reference](#8-config-file-reference)
 9. [Troubleshooting](#9-troubleshooting)
@@ -81,6 +83,26 @@ SHOW TABLES;
 
 You should see roughly 70 tables (login, char, inventory, guild, etc.).
 
+### 2.4 MySQL 8.0 — Fix Authentication Plugin (Required)
+
+MySQL 8.0 defaults to the `caching_sha2_password` authentication plugin, which rAthena's bundled MySQL connector does not support. You **must** switch the user to the older `mysql_native_password` plugin or the servers will fail to connect to the database.
+
+Run this once in a MySQL prompt:
+
+```sql
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'password';
+FLUSH PRIVILEGES;
+```
+
+Replace `'root'` and `'password'` with your actual MySQL username and password. If you are using a dedicated database user (recommended for production), run the same command for that user instead.
+
+You only need to do this once. Verify it worked:
+
+```sql
+SELECT user, host, plugin FROM mysql.user WHERE user = 'root';
+-- plugin column should now show: mysql_native_password
+```
+
 ---
 
 ## 3. Build the Server
@@ -98,6 +120,8 @@ Or build from the command line using MSBuild:
     -p:Platform=x64 ^
     -m
 ```
+
+> **PACKETVER:** The server is compiled against a specific client version. This project uses `PACKETVER 20250402` (April 2025 client). This is set in `src/custom/defines_pre.hpp` and must match the client executable you are using. If you ever update the client, update this value and rebuild.
 
 After a successful build, the following executables will be in the repository root:
 
@@ -251,28 +275,27 @@ log_db_pw: password
 
 ## 5. Run the Server
 
-Start each server **in this order**. Each must be running before the next starts.
+### Using `runserver.bat` (Recommended)
 
-### Windows
+The repository includes `runserver.bat`, a full server management script. Run it from the repository root:
 
-Open three separate command prompt windows and run:
+| Command | What it does |
+|---|---|
+| `runserver.bat start` | Start all four servers (no auto-restart on crash) |
+| `runserver.bat watch` | Start all servers with **auto-restart** if one crashes (default if no argument) |
+| `runserver.bat stop` | Kill all running server processes |
+| `runserver.bat status` | Show which servers are currently running |
 
-```bat
-:: Window 1 — Login Server
-login-server.exe
+**Quick start — double-click `runserver.bat`** (no argument = `watch` mode, starts everything with auto-restart).
 
-:: Window 2 — Character Server (after login-server is ready)
-char-server.exe
+This opens four separate console windows — one for each server (login, char, map, web). They start in sequence.
 
-:: Window 3 — Map Server (after char-server is ready)
-map-server.exe
+### Start Order
+
+The servers must come up in this order. `runserver.bat` handles this automatically:
+
 ```
-
-The web server is optional (only needed for some client features):
-
-```bat
-:: Window 4 — Web Server (optional)
-web-server.exe
+login-server.exe  →  char-server.exe  →  web-server.exe  →  map-server.exe
 ```
 
 ### What "Ready" Looks Like
@@ -285,7 +308,7 @@ Watch the console output. Each server prints a ready message when it finishes lo
 
 ### Stopping the Servers
 
-Close each console window, or type `exit` in the console prompt.
+Run `runserver.bat stop`, or close each console window individually.
 
 ---
 
@@ -339,19 +362,50 @@ Open `data\clientinfo.xml` in a text editor (Notepad++ recommended — the file 
 
 > **Encoding warning:** Always save this file with **EUC-KR** encoding. If you save it as UTF-8 the client may fail to read it. Notepad++ → Encoding → Character sets → East Asian → Korean (EUC-KR).
 
-### 6.2 GRF Load Order — `DATA.ini`
+### 6.2 Patch the Client with WARP (Required)
 
-Controls which data archives the client loads and in what priority order. The current config is correct:
+The stock `Ragexe.exe` has **GameGuard** (anti-cheat) enabled and uses **packet encryption** that is incompatible with a private server. You must patch it using **WARP** before it will connect.
+
+**One-time setup:**
+
+1. Download WARP from: https://github.com/hiphop9/Warp2025/releases
+   Download the latest `.zip` release and extract it anywhere.
+
+2. Open WARP, click **Load Client**, and select:
+   `Ragexe.exe` (in the client folder)
+
+3. In the patch list, find and enable these patches:
+
+   | Patch name | Why it's needed |
+   |---|---|
+   | `Disable Game Guard` | GameGuard blocks connections to unofficial servers |
+   | `Disable Packet Encryption` | Matches the server-side setting — without this, packets are garbled |
+   | `Load Custom lua files` | Allows the client to load item/skill names from custom Lua in the data folder |
+
+4. Click **Apply**. WARP saves a patched copy of the exe alongside the original (e.g., `Ragexe_patched.exe`).
+
+5. Use the **patched exe** to launch the game from now on. Keep the original untouched.
+
+> **Note:** You only need to do this once. If you update the client exe, you must re-patch it.
+
+### 6.3 GRF Load Order — `DATA.ini`
+
+Controls which data archives the client loads and in what priority order:
 
 ```ini
 [Data]
 0=en.grf
 1=data.grf
+2=data\
 ```
 
-`en.grf` is loaded first (highest priority), so English localization overrides Korean defaults in `data.grf`. Do not change this unless you are adding a custom GRF.
+- `en.grf` — English localization (highest priority)
+- `data.grf` — Base Korean game data
+- `data\` — Loose files folder (where `clientinfo.xml` and custom overrides live)
 
-### 6.3 Adding a Custom GRF (Optional)
+The `data\` entry at the bottom ensures the client reads files from the loose `data\` folder on disk. This is how `clientinfo.xml` gets picked up. Do not remove it.
+
+### 6.4 Adding a Custom GRF (Optional)
 
 If you want to distribute custom textures, sprites, or sounds, package them in a GRF archive and add it as the new `0=` entry:
 
@@ -364,13 +418,13 @@ If you want to distribute custom textures, sprites, or sounds, package them in a
 
 Tools for creating/editing GRFs: [GRF Editor](https://rathena.org/board/topic/77080-grf-grf-editor/) (free, Windows).
 
-### 6.4 Launching the Client
+### 6.5 Launching the Client
 
-Run `Ragexe.exe` (the April 2025 build). Do **not** run `Ragnarok.exe` — that is an older launcher.
+Run the **patched** `Ragexe.exe` (created by WARP in step 6.2). Do **not** run `Ragnarok.exe` — that is the official patcher/launcher and will not connect to a private server.
 
 If the client shows a list of servers, select **RESTART** (or whatever you set `<display>` to) and log in.
 
-### 6.5 Connecting from Other Machines
+### 6.6 Connecting from Other Machines
 
 If other players want to connect over your LAN:
 
@@ -495,6 +549,17 @@ Put local overrides here. These files are never overwritten by updates.
 - Confirm MySQL is running: `net start mysql` (Windows) or `sudo systemctl status mysql`
 - Check credentials in `conf/inter_athena.conf` match your MySQL user/password
 - On Windows, use `127.0.0.1` not `localhost` in the config to avoid socket issues
+
+### "MySQL authentication plugin not supported" / Silent DB connection failure on MySQL 8.0
+
+MySQL 8.0 defaults to `caching_sha2_password`, which rAthena's MySQL connector does not support. The servers may start but fail silently, or show a DB connection error.
+
+Fix: switch the user's authentication plugin to `mysql_native_password` (see Section 2.4).
+
+```sql
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'password';
+FLUSH PRIVILEGES;
+```
 
 ### "Failed to connect to char-server" / "Failed to connect to login-server"
 
