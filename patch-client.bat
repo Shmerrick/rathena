@@ -44,10 +44,13 @@ IF NOT EXIST "%WARP_EXE%" (
     EXIT /B 1
 )
 
-:: ---- 3. Disable GameGuard folder (if still present) ----
-:: Rename the GameGuard folder so the client cannot load it even if the
-:: NoGGuard patch left partial references. Safe to repeat — already-renamed
-:: folder is skipped.
+:: ---- 3. Stub out GameGuard DLL files ----
+:: The NoGGuard patch removes the GameGuard call from the exe, so the
+:: patched exe never loads GameGuard. However the GameGuard\ folder must
+:: still exist (some clients check for it at startup before the patch runs).
+:: We replace the real GameGuard DLLs with empty stub files so the loader
+:: finds the folder but loads nothing harmful.
+:: Do NOT rename or delete the folder — that causes a blank startup error.
 SET GG_DIR=
 IF "%~1"=="" (
     SET GG_DIR=C:\Users\Admin\Desktop\20250416Ragnarok_en\GameGuard
@@ -55,8 +58,11 @@ IF "%~1"=="" (
     SET GG_DIR=%~dp1GameGuard
 )
 IF EXIST "!GG_DIR!" (
-    echo [RESTART] Disabling GameGuard folder: !GG_DIR!
-    RENAME "!GG_DIR!" "GameGuard_disabled"
+    echo [RESTART] Stubbing GameGuard files in: !GG_DIR!
+    FOR %%F IN ("!GG_DIR!\*.des" "!GG_DIR!\*.erl") DO (
+        COPY /Y NUL "%%F" >NUL 2>&1
+    )
+    echo [RESTART] GameGuard stubbed.
 )
 
 :: ---- 4. Determine source exe and apply patches ----
